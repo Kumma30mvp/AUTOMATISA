@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AUTOMATISA - Sitio Web
 
-## Getting Started
+Sitio web corporativo para **AUTOMATISA**, taller de diagnóstico y servicio automotriz profesional ubicado en Los Olivos, Lima, Perú.
 
-First, run the development server:
+Desarrollado con **Next.js 16**, **React 19**, **Tailwind CSS 4** y **TypeScript**.
+
+---
+
+## Requisitos Previos
+
+- **Node.js** v18.18 o superior ([descargar aquí](https://nodejs.org/))
+- **npm** v9 o superior (incluido con Node.js)
+
+Para verificar las versiones instaladas:
+
+```bash
+node -v
+npm -v
+```
+
+---
+
+## Instalación
+
+Clonar el repositorio e instalar dependencias:
+
+```bash
+git clone <URL_DEL_REPOSITORIO>
+cd automatisa
+npm install
+```
+
+---
+
+## Desarrollo
+
+Iniciar el servidor de desarrollo local:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000) en el navegador para ver el sitio.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Los cambios en el código se reflejan automáticamente en el navegador.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Producción
 
-To learn more about Next.js, take a look at the following resources:
+### Generar el build de producción
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Iniciar el servidor de producción
 
-## Deploy on Vercel
+```bash
+npm start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+El sitio estará disponible en [http://localhost:3000](http://localhost:3000).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Estructura del Proyecto
+
+```text
+automatisa/
+├── public/
+│   └── images/            # Imágenes del sitio (hero, about, mapa, etc.)
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx     # Layout principal (metadata SEO, fuentes)
+│   │   ├── page.tsx       # Página principal (JSON-LD, secciones)
+│   │   ├── globals.css    # Estilos globales y tema de colores
+│   │   └── favicon.ico    # Ícono del sitio
+│   ├── components/
+│   │   ├── icons/         # Componentes SVG (Logo, WhatsApp)
+│   │   ├── layout/        # Navbar y Footer
+│   │   ├── sections/      # Secciones de la landing page
+│   │   └── ui/            # Componentes reutilizables (botones)
+│   └── lib/
+│       ├── constants.ts   # Datos del negocio, servicios, enlaces
+│       └── fonts.ts       # Configuración de fuentes (Manrope, Inter)
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── postcss.config.mjs
+├── eslint.config.mjs
+└── .gitignore
+```
+
+---
+
+## Datos del Negocio
+
+Toda la información del negocio (teléfono, dirección, horarios, enlaces de WhatsApp, servicios) se encuentra centralizada en:
+
+```text
+src/lib/constants.ts
+```
+
+Para actualizar cualquier dato del negocio, editar únicamente ese archivo.
+
+---
+
+## Despliegue
+
+### Vercel (recomendado)
+
+1. Crear una cuenta en [vercel.com](https://vercel.com)
+2. Conectar el repositorio de GitHub
+3. Vercel detectará automáticamente que es un proyecto Next.js
+4. Hacer clic en **Deploy**
+
+No se requiere configuración adicional.
+
+### Otras plataformas
+
+Para cualquier plataforma que soporte Node.js:
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+La aplicación escucha en el puerto `3000` por defecto. Para cambiar el puerto:
+
+```bash
+PORT=8080 npm start
+```
+
+---
+
+## Verificación de Calidad
+
+Ejecutar el linter para verificar el código:
+
+```bash
+npm run lint
+```
+
+---
+
+## Solución de Problemas
+
+| Problema | Solución |
+| -------- | -------- |
+| `npm install` falla | Verificar que Node.js v18.18+ esté instalado. Eliminar `node_modules` y `package-lock.json`, luego ejecutar `npm install` nuevamente. |
+| El sitio no carga en desarrollo | Verificar que el puerto 3000 no esté en uso. Revisar la terminal por errores. |
+| Las imágenes no se muestran | Verificar que la carpeta `public/images/` contenga los archivos: `hero-bg.png`, `about.png`, `diagnostic.png`, `map-placeholder.png`. |
+| Error de build en producción | Ejecutar `npm run lint` para identificar errores de código. |
+| Las fuentes no cargan | Verificar la conexión a internet; las fuentes se descargan de Google Fonts durante el build. |
+
+---
+
+## Tecnologías
+
+- **Next.js 16** - Framework de React
+- **React 19** - Biblioteca de interfaz de usuario
+- **Tailwind CSS 4** - Framework de estilos utilitarios
+- **TypeScript 5** - Tipado estático
+- **Lucide React** - Biblioteca de íconos
