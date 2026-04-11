@@ -44,3 +44,37 @@ export type ApiErrorResponse = {
 };
 
 export type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
+
+// --- Admin types ---
+
+export type AppointmentRequestFull = AppointmentRequestRow & {
+  service_catalog: { name: string } | null;
+};
+
+export type StatusHistoryEntry = {
+  id: string;
+  previous_status: AppointmentStatus | null;
+  new_status: AppointmentStatus;
+  changed_by: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type SummaryCounts = {
+  pendiente: number;
+  confirmada: number;
+  cancelada: number;
+  completada: number;
+};
+
+export type AdminListResponse = {
+  data: AppointmentRequestFull[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export type AppointmentDetailResponse = {
+  request: AppointmentRequestFull;
+  history: StatusHistoryEntry[];
+};

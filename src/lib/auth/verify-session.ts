@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type VerifiedStaff = {
@@ -17,10 +18,15 @@ export type VerifiedStaff = {
  * 2. Checks that the authenticated user exists in staff_profiles
  *    and is marked as active.
  *
+ * Wrapped with React `cache()` so multiple calls within the same request
+ * (layout + page + route handlers) only hit Supabase once.
+ *
  * Returns the verified staff member or null if unauthorized.
  * Use this in every admin route handler before performing any operations.
  */
-export async function verifySession(): Promise<VerifiedStaff | null> {
+export const verifySession = cache(_verifySession);
+
+async function _verifySession(): Promise<VerifiedStaff | null> {
   const supabase = await createClient();
 
   // getUser() contacts the Auth server — verified identity
