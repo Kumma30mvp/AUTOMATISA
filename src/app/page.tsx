@@ -5,6 +5,7 @@ import About from "@/components/sections/About";
 import Services from "@/components/sections/Services";
 import WhyChooseUs from "@/components/sections/WhyChooseUs";
 import Location from "@/components/sections/Location";
+import AppointmentForm from "@/components/sections/AppointmentForm";
 import FinalCTA from "@/components/sections/FinalCTA";
 import WhatsAppFAB from "@/components/ui/WhatsAppFAB";
 
@@ -67,6 +68,7 @@ export default function Home() {
         <Services />
         <WhyChooseUs />
         <Location />
+        <AppointmentForm />
         <FinalCTA />
       </main>
       <Footer />

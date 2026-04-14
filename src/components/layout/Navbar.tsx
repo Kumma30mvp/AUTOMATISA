@@ -46,9 +46,7 @@ export default function Navbar() {
             <Phone className="size-5" />
           </a>
           <a
-            href={`${BUSINESS.whatsappUrl}${BUSINESS.whatsappMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#agendar"
             className="rounded-lg bg-navy-900 px-6 py-2.5 font-heading text-sm font-bold text-white transition-colors hover:bg-navy-800"
           >
             Agendar cita
@@ -90,10 +88,17 @@ export default function Navbar() {
               </a>
             ))}
             <a
+              href="#agendar"
+              onClick={() => setIsOpen(false)}
+              className="mt-2 rounded-lg bg-blue-accent px-4 py-3 text-center text-sm font-bold text-white"
+            >
+              Solicitar cita en línea
+            </a>
+            <a
               href={`${BUSINESS.whatsappUrl}${BUSINESS.whatsappMessage}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 rounded-lg bg-navy-900 px-4 py-3 text-center text-sm font-bold text-white"
+              className="rounded-lg bg-navy-900 px-4 py-3 text-center text-sm font-bold text-white"
             >
               Agendar cita por WhatsApp
             </a>

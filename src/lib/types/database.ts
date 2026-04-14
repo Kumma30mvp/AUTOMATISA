@@ -45,6 +45,11 @@ export type ApiErrorResponse = {
 
 export type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
 
+export type ServiceOption = {
+  id: string;
+  name: string;
+};
+
 // --- Admin types ---
 
 export type AppointmentRequestFull = AppointmentRequestRow & {
