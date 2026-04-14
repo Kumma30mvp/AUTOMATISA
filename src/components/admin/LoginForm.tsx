@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -18,20 +17,27 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch("/api/admin/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (authError) {
-      setError("Credenciales inválidas. Verifique su correo y contraseña.");
+      const body = await res.json();
+
+      if (!res.ok || !body.success) {
+        setError(body.error ?? "No se pudo iniciar sesión. Verifique sus datos.");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/admin/citas");
+      router.refresh();
+    } catch {
+      setError("Error de red. Intente nuevamente.");
       setLoading(false);
-      return;
     }
-
-    router.push("/admin/citas");
-    router.refresh();
   }
 
   return (

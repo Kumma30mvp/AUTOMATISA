@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   ALLOWED_TRANSITIONS,
@@ -39,6 +39,14 @@ export function StatusActions({
   const router = useRouter();
   const [loading, setLoading] = useState<AppointmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const successTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimer.current) clearTimeout(successTimer.current);
+    };
+  }, []);
 
   const allowed = ALLOWED_TRANSITIONS[currentStatus];
 
@@ -53,6 +61,7 @@ export function StatusActions({
   async function handleUpdate(newStatus: AppointmentStatus) {
     setLoading(newStatus);
     setError(null);
+    setSuccess(null);
 
     try {
       const res = await fetch(
@@ -69,6 +78,9 @@ export function StatusActions({
         setLoading(null);
         return;
       }
+      setSuccess("Estado actualizado correctamente");
+      if (successTimer.current) clearTimeout(successTimer.current);
+      successTimer.current = setTimeout(() => setSuccess(null), 3000);
       onUpdated();
       router.refresh();
     } catch {
@@ -95,6 +107,7 @@ export function StatusActions({
         ))}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
+      {success && <p className="text-xs text-green-700">{success}</p>}
     </div>
   );
 }

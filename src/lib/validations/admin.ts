@@ -20,37 +20,42 @@ export const appointmentStatusSchema = z.enum(STATUS_VALUES);
  *   (the date the request was submitted), not preferred_date.
  * - Pagination: 1-indexed page, default 20 per page (max 100).
  */
-export const adminListQuerySchema = z.object({
-  dni: z
-    .string()
-    .trim()
-    .regex(/^\d{1,8}$/, { message: "DNI inválido" })
-    .optional(),
+export const adminListQuerySchema = z
+  .object({
+    dni: z
+      .string()
+      .trim()
+      .regex(/^\d{1,8}$/, { message: "DNI inválido" })
+      .optional(),
 
-  car_plate: z
-    .string()
-    .trim()
-    .min(1)
-    .max(10)
-    .transform((v) => v.toUpperCase())
-    .optional(),
+    car_plate: z
+      .string()
+      .trim()
+      .min(1)
+      .max(10)
+      .transform((v) => v.toUpperCase())
+      .optional(),
 
-  status: appointmentStatusSchema.optional(),
+    status: appointmentStatusSchema.optional(),
 
-  from: z
-    .string()
-    .regex(DATE_REGEX, { message: "Fecha 'from' inválida" })
-    .optional(),
+    from: z
+      .string()
+      .regex(DATE_REGEX, { message: "Fecha 'from' inválida" })
+      .optional(),
 
-  to: z
-    .string()
-    .regex(DATE_REGEX, { message: "Fecha 'to' inválida" })
-    .optional(),
+    to: z
+      .string()
+      .regex(DATE_REGEX, { message: "Fecha 'to' inválida" })
+      .optional(),
 
-  page: z.coerce.number().int().min(1).default(1),
+    page: z.coerce.number().int().min(1).default(1),
 
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-});
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .refine((data) => !(data.from && data.to && data.from > data.to), {
+    message: "La fecha 'hasta' debe ser igual o posterior a 'desde'",
+    path: ["to"],
+  });
 
 export type AdminListQuery = z.infer<typeof adminListQuerySchema>;
 
