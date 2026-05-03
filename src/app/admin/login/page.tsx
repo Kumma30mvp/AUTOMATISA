@@ -9,7 +9,9 @@ export const metadata = {
 export default async function AdminLoginPage() {
   const staff = await verifySession();
   if (staff) {
-    redirect("/admin/citas");
+    // Role-aware landing: admins land on the full appointment dashboard,
+    // staff land on the confirmed-only operational queue.
+    redirect(staff.role === "admin" ? "/admin/citas" : "/admin/staff");
   }
 
   return (

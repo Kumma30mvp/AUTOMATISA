@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { verifySession } from "@/lib/auth/verify-session";
 import { createClient } from "@/lib/supabase/server";
 import { adminListQuerySchema } from "@/lib/validations/admin";
 import { SummaryCards } from "@/components/admin/SummaryCards";
@@ -28,6 +30,19 @@ export default async function CitasPage({
 }: {
   searchParams: SearchParams;
 }) {
+  // Defense-in-depth: the (protected) layout already redirects
+  // unauthenticated users to /admin/login, but we re-check here so
+  // this page is safe even if it's ever moved outside the layout.
+  // Staff users land on /admin/staff — they must not see the full
+  // admin dashboard (counts include pendiente/cancelada/completada).
+  const session = await verifySession();
+  if (!session) {
+    redirect("/admin/login");
+  }
+  if (session.role !== "admin") {
+    redirect("/admin/staff");
+  }
+
   const rawParams = normalize(await searchParams);
   const parsed = adminListQuerySchema.safeParse(rawParams);
 

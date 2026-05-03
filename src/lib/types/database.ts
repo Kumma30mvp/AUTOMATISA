@@ -65,6 +65,31 @@ export type StatusHistoryEntry = {
   created_at: string;
 };
 
+/**
+ * Compact representation of a staff_profiles row, used inline in
+ * appointment detail responses (assigned_staff field).
+ */
+export type AssignedStaffSummary = {
+  id: string;
+  full_name: string;
+};
+
+/**
+ * Status history entry augmented with the resolved actor (joined
+ * from staff_profiles via the changed_by UUID). Anonymous-created
+ * entries (the initial "Solicitud creada" row) have actor_full_name
+ * = null because the trigger writes changed_by = NULL.
+ *
+ * actor_role is intentionally a plain union of the allowed values
+ * — defined here to avoid a cyclic import from auth/verify-session.
+ */
+export type StatusHistoryActorRole = "admin" | "staff";
+
+export type StatusHistoryEntryWithActor = StatusHistoryEntry & {
+  actor_full_name: string | null;
+  actor_role: StatusHistoryActorRole | null;
+};
+
 export type SummaryCounts = {
   pendiente: number;
   confirmada: number;
@@ -80,6 +105,8 @@ export type AdminListResponse = {
 };
 
 export type AppointmentDetailResponse = {
-  request: AppointmentRequestFull;
-  history: StatusHistoryEntry[];
+  request: AppointmentRequestFull & {
+    assigned_staff: AssignedStaffSummary | null;
+  };
+  history: StatusHistoryEntryWithActor[];
 };

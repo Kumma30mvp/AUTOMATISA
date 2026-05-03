@@ -1,13 +1,17 @@
 import "server-only";
 
 import { cache } from "react";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+
+export const StaffRoleSchema = z.enum(["admin", "staff"]);
+export type StaffRole = z.infer<typeof StaffRoleSchema>;
 
 export type VerifiedStaff = {
   userId: string;
   email: string;
   fullName: string;
-  role: string;
+  role: StaffRole;
 };
 
 /**
@@ -17,19 +21,21 @@ export type VerifiedStaff = {
  *    the Supabase Auth server (NOT just reading from cookies).
  * 2. Checks that the authenticated user exists in staff_profiles
  *    and is marked as active.
+ * 3. Parses the role with StaffRoleSchema. Anything outside
+ *    {'admin','staff'} is treated as unauthenticated (fail-closed).
+ *    Migration 005 adds a CHECK constraint that prevents bad role
+ *    values at write time; this parse is the second line of defense.
  *
  * Wrapped with React `cache()` so multiple calls within the same request
  * (layout + page + route handlers) only hit Supabase once.
  *
  * Returns the verified staff member or null if unauthorized.
- * Use this in every admin route handler before performing any operations.
  */
 export const verifySession = cache(_verifySession);
 
 async function _verifySession(): Promise<VerifiedStaff | null> {
   const supabase = await createClient();
 
-  // getUser() contacts the Auth server — verified identity
   const {
     data: { user },
     error: authError,
@@ -39,7 +45,6 @@ async function _verifySession(): Promise<VerifiedStaff | null> {
     return null;
   }
 
-  // Check staff_profiles for active staff membership
   const { data: staff, error: staffError } = await supabase
     .from("staff_profiles")
     .select("full_name, email, role, is_active")
@@ -50,10 +55,15 @@ async function _verifySession(): Promise<VerifiedStaff | null> {
     return null;
   }
 
+  const roleParse = StaffRoleSchema.safeParse(staff.role);
+  if (!roleParse.success) {
+    return null;
+  }
+
   return {
     userId: user.id,
     email: staff.email,
     fullName: staff.full_name,
-    role: staff.role,
+    role: roleParse.data,
   };
 }
