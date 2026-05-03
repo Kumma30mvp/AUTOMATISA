@@ -1,16 +1,21 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
+import { AppointmentDetail } from "@/components/admin/AppointmentDetail";
 import type { AppointmentRequestFull } from "@/lib/types/database";
+
+type Role = "admin" | "staff";
 
 type Props = {
   rows: AppointmentRequestFull[];
   total: number;
   page: number;
   pageSize: number;
+  role: Role;
 };
 
 function formatDateTime(iso: string): string {
@@ -26,14 +31,20 @@ function formatDateTime(iso: string): string {
 }
 
 /**
- * Read-only listing of confirmed appointments for the staff workspace.
- * Phase 8 Step 7 scope: show the queue and paginate. No detail modal,
- * no status actions, no assignment, no history. Step 8 will add the
- * role-aware detail surfaces.
+ * Confirmed-only appointment listing for the staff workspace.
+ * Opens AppointmentDetail with the caller's verified role so the
+ * detail surface auto-adapts: staff sees read-only assignment,
+ * full customer/vehicle history, the actor-named timeline, and
+ * the "actions reserved for admin" message in the actions slot.
+ *
+ * The detail GET route enforces status='confirmada' for staff
+ * server-side; this table only ever lists confirmadas, so the
+ * staff-side guard is never tripped during normal use.
  */
-export function StaffQueueTable({ rows, total, page, pageSize }: Props) {
+export function StaffQueueTable({ rows, total, page, pageSize, role }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -56,13 +67,14 @@ export function StaffQueueTable({ rows, total, page, pageSize }: Props) {
               <th className="px-4 py-3">Servicio</th>
               <th className="px-4 py-3">Preferida</th>
               <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3 text-right">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-200 text-navy-900">
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-10 text-center text-sm text-nav"
                 >
                   No hay citas confirmadas en este momento.
@@ -94,6 +106,15 @@ export function StaffQueueTable({ rows, total, page, pageSize }: Props) {
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={r.status} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setSelectedId(r.id)}
+                  >
+                    <Eye className="h-4 w-4" /> Ver
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -132,6 +153,12 @@ export function StaffQueueTable({ rows, total, page, pageSize }: Props) {
           </Button>
         </div>
       </div>
+
+      <AppointmentDetail
+        appointmentId={selectedId}
+        role={role}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   );
 }

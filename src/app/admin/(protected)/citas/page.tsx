@@ -108,6 +108,7 @@ export default async function CitasPage({
         total={total}
         page={query.page}
         pageSize={query.pageSize}
+        role={session.role}
       />
     </div>
   );

@@ -8,9 +8,12 @@ import {
 } from "@/lib/validations/admin";
 import type { AppointmentStatus } from "@/lib/types/database";
 
+type Role = "admin" | "staff";
+
 type Props = {
   appointmentId: string;
   currentStatus: AppointmentStatus;
+  role: Role;
   onUpdated: () => void;
 };
 
@@ -34,6 +37,7 @@ const VARIANTS: Record<
 export function StatusActions({
   appointmentId,
   currentStatus,
+  role,
   onUpdated,
 }: Props) {
   const router = useRouter();
@@ -48,7 +52,28 @@ export function StatusActions({
     };
   }, []);
 
-  const allowed = ALLOWED_TRANSITIONS[currentStatus];
+  // Staff cannot change status — defense-in-depth UI mirror of the
+  // admin-only RLS / API gate. Server-side enforcement is the real
+  // boundary; the message just keeps staff from seeing buttons that
+  // would 403 on click.
+  if (role !== "admin") {
+    return (
+      <p className="text-sm text-nav">
+        Las acciones de estado están reservadas para el equipo administrador.
+      </p>
+    );
+  }
+
+  const rawAllowed = ALLOWED_TRANSITIONS[currentStatus];
+
+  // Phase 8 temporary guard: completion will be wired through the
+  // admin "Send PDF and complete" action in Phase 10 once technical
+  // reports exist. Until then, hide the direct "Completar" button so
+  // admins don't bypass the report flow. Cancellation stays available.
+  // Remove this filter when Phase 10 ships completion via the report
+  // workflow.
+  const allowed = rawAllowed.filter((target) => target !== "completada");
+  const completionGuarded = rawAllowed.includes("completada");
 
   if (allowed.length === 0) {
     return (
@@ -106,6 +131,12 @@ export function StatusActions({
           </Button>
         ))}
       </div>
+      {completionGuarded && (
+        <p className="text-xs text-nav">
+          La finalización estará disponible cuando el informe técnico esté
+          implementado.
+        </p>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       {success && <p className="text-xs text-green-700">{success}</p>}
     </div>

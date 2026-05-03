@@ -8,11 +8,14 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { AppointmentDetail } from "@/components/admin/AppointmentDetail";
 import type { AppointmentRequestFull } from "@/lib/types/database";
 
+type Role = "admin" | "staff";
+
 type Props = {
   rows: AppointmentRequestFull[];
   total: number;
   page: number;
   pageSize: number;
+  role: Role;
 };
 
 function formatDateTime(iso: string): string {
@@ -27,7 +30,7 @@ function formatDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-export function AppointmentsTable({ rows, total, page, pageSize }: Props) {
+export function AppointmentsTable({ rows, total, page, pageSize, role }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -140,6 +143,7 @@ export function AppointmentsTable({ rows, total, page, pageSize }: Props) {
 
       <AppointmentDetail
         appointmentId={selectedId}
+        role={role}
         onClose={() => setSelectedId(null)}
       />
     </div>

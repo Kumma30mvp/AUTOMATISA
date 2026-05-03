@@ -226,6 +226,23 @@ export async function PATCH(request: Request, { params }: Params) {
       );
     }
 
+    // Phase 8 temporary guard: block direct transitions to
+    // "completada" until Phase 10 wires completion through the
+    // "Send PDF and complete" workflow that requires an approved
+    // technical report. The UI also hides the "Completar" button
+    // (see StatusActions.tsx). Remove BOTH guards together when
+    // Phase 10 ships.
+    if (parsed.data.status === "completada") {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "La finalización estará disponible cuando el informe técnico esté implementado.",
+        },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createClient();
 
     // Fetch current status to validate transition server-side

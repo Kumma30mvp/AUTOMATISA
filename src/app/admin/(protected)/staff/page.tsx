@@ -100,6 +100,7 @@ export default async function StaffWorkspacePage({
         total={queue.total}
         page={queue.page}
         pageSize={queue.pageSize}
+        role={session.role}
       />
     </div>
   );
