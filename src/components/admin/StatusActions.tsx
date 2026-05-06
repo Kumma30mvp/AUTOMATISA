@@ -133,8 +133,8 @@ export function StatusActions({
       </div>
       {completionGuarded && (
         <p className="text-xs text-nav">
-          La finalización estará disponible cuando el informe técnico esté
-          implementado.
+          La finalización estará disponible cuando el envío del informe
+          técnico al cliente esté implementado.
         </p>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}

@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { AssignmentField } from "@/components/admin/AssignmentField";
 import { CustomerHistoryPanel } from "@/components/admin/CustomerHistoryPanel";
 import { VehicleHistoryPanel } from "@/components/admin/VehicleHistoryPanel";
 import { StatusActions } from "@/components/admin/StatusActions";
+import { ReportStatusBadge } from "@/components/admin/ReportStatusBadge";
 import type {
   AppointmentDetailResponse,
   AppointmentStatus,
 } from "@/lib/types/database";
+import type { TechnicalReportCreateResponse } from "@/lib/types/reports";
 
 type Role = "admin" | "staff";
 
@@ -52,9 +56,16 @@ function Field({
 }
 
 export function AppointmentDetail({ appointmentId, role, onClose }: Props) {
+  const router = useRouter();
   const [detail, setDetail] = useState<AppointmentDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 9 — local state for the "Crear informe" CTA in the
+  // "Informe técnico" section. The summary itself comes from the
+  // appointment-detail GET (request.technical_report).
+  const [creatingReport, setCreatingReport] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const load = useCallback(async (id: string) => {
     setLoading(true);
@@ -83,6 +94,62 @@ export function AppointmentDetail({ appointmentId, role, onClose }: Props) {
       setError(null);
     }
   }, [appointmentId, load]);
+
+  // Reset CTA state whenever the modal switches appointments.
+  useEffect(() => {
+    setCreatingReport(false);
+    setReportError(null);
+  }, [appointmentId]);
+
+  /**
+   * POST /api/admin/appointment-requests/[id]/report.
+   *
+   * Body shaping by role:
+   *   - Admin: send `technician_staff_id = assigned_staff.id`. The
+   *     "Crear informe" CTA is only rendered when an assigned staff
+   *     is present (see the section below), so this path always has
+   *     a value to send.
+   *   - Staff: send empty body. The route forces
+   *     technician_staff_id = session.userId regardless of body
+   *     content (see /api/admin/appointment-requests/[id]/report).
+   *
+   * On success, navigate to the editor. The page mounts with the
+   * fresh report and the user can start filling sections.
+   */
+  async function handleCreateReport() {
+    if (!detail) return;
+    setCreatingReport(true);
+    setReportError(null);
+    try {
+      const body: { technician_staff_id?: string } = {};
+      if (role === "admin" && detail.request.assigned_staff) {
+        body.technician_staff_id = detail.request.assigned_staff.id;
+      }
+      const res = await fetch(
+        `/api/admin/appointment-requests/${detail.request.id}/report`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+      const respBody = (await res.json()) as
+        | TechnicalReportCreateResponse
+        | { success: false; error?: string };
+      if (!res.ok || respBody.success !== true) {
+        const message =
+          ("error" in respBody && respBody.error) ||
+          "Error al crear el informe";
+        setReportError(message);
+        return;
+      }
+      router.push(`/admin/reports/${respBody.data.id}`);
+    } catch {
+      setReportError("Error de red. Intente nuevamente.");
+    } finally {
+      setCreatingReport(false);
+    }
+  }
 
   const open = appointmentId !== null;
 
@@ -257,6 +324,94 @@ export function AppointmentDetail({ appointmentId, role, onClose }: Props) {
                 });
               })()}
             </ol>
+          </section>
+
+          <section className="border-t border-surface-200 pt-4">
+            <h3 className="mb-3 font-heading text-sm font-semibold text-navy-900">
+              Informe técnico
+            </h3>
+            {(() => {
+              const summary = detail.request.technical_report;
+
+              // 1. A report exists — show the summary card with the
+              //    status badge, technician name, last-edit timestamp,
+              //    and a "Ver informe" CTA. Renders for any
+              //    appointment status (a report can exist even after
+              //    the appointment is later cancelled or completed).
+              if (summary) {
+                return (
+                  <div className="flex flex-col gap-3 rounded-2xl border border-surface-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <ReportStatusBadge status={summary.report_status} />
+                      <p className="text-sm text-navy-900">
+                        {summary.technician_full_name ??
+                          "Técnico no disponible"}
+                      </p>
+                      <p className="text-xs text-nav">
+                        Última edición:{" "}
+                        {formatDateTime(summary.updated_at)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/admin/reports/${summary.id}`)
+                      }
+                    >
+                      Ver informe
+                    </Button>
+                  </div>
+                );
+              }
+
+              // 2. No report yet, appointment not in confirmada — the
+              //    DB trigger trg_05_…_require_confirmada blocks
+              //    INSERTs here, so we surface the requirement
+              //    instead of an actionable CTA.
+              if (detail.request.status !== "confirmada") {
+                return (
+                  <p className="text-sm text-nav">
+                    El informe se podrá crear cuando la cita esté
+                    confirmada.
+                  </p>
+                );
+              }
+
+              // 3. No report yet, confirmada, admin without assigned
+              //    technician — block creation here. The POST route
+              //    requires `technician_staff_id` for admin callers
+              //    (returns 400 + field detail otherwise). Asking for
+              //    an assignment first matches the operational flow
+              //    and avoids surfacing a 400 mid-click.
+              if (role === "admin" && !detail.request.assigned_staff) {
+                return (
+                  <p className="text-sm text-nav">
+                    Asigne un técnico antes de crear el informe.
+                  </p>
+                );
+              }
+
+              // 4. No report yet, confirmada, eligible to create:
+              //    admin with assigned staff, or staff (server forces
+              //    them as the technician regardless of body).
+              return (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={creatingReport}
+                    disabled={creatingReport}
+                    onClick={handleCreateReport}
+                  >
+                    Crear informe
+                  </Button>
+                  {reportError && (
+                    <p className="text-xs text-red-600">{reportError}</p>
+                  )}
+                </div>
+              );
+            })()}
           </section>
 
           <section className="border-t border-surface-200 pt-4">

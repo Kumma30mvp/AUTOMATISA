@@ -1,3 +1,5 @@
+import type { TechnicalReportSummary } from "./reports";
+
 export type AppointmentStatus =
   | "pendiente"
   | "confirmada"
@@ -107,6 +109,13 @@ export type AdminListResponse = {
 export type AppointmentDetailResponse = {
   request: AppointmentRequestFull & {
     assigned_staff: AssignedStaffSummary | null;
+    /**
+     * Phase 9: technical report attached to this appointment, or null
+     * if no report exists yet. UI uses presence to choose between
+     * "Crear informe" and "Ver informe" without an extra round-trip.
+     * Soft-failing lookups return null (consistent with assigned_staff).
+     */
+    technical_report: TechnicalReportSummary | null;
   };
   history: StatusHistoryEntryWithActor[];
 };

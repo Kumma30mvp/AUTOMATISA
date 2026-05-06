@@ -14,6 +14,10 @@ import type {
   StatusHistoryEntry,
   StatusHistoryEntryWithActor,
 } from "@/lib/types/database";
+import type {
+  ReportStatus,
+  TechnicalReportSummary,
+} from "@/lib/types/reports";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -174,10 +178,72 @@ export async function GET(_request: Request, { params }: Params) {
       }
     );
 
+    // 5. Phase 9: technical report summary. 1:1 with the appointment via
+    // the UNIQUE(appointment_request_id) constraint on technical_reports.
+    // RLS gates the SELECT (admin: any; staff: own OR confirmada-tied;
+    // staff is already past the confirmada guard above so the join works).
+    // Soft-fail on lookup error → technical_report=null (consistent with
+    // the assigned_staff posture).
+    let technical_report: TechnicalReportSummary | null = null;
+
+    const { data: reportRow, error: reportError } = await supabase
+      .from("technical_reports")
+      .select(
+        "id, report_status, technician_staff_id, updated_at, approved_by_admin_id, sent_at"
+      )
+      .eq("appointment_request_id", id)
+      .maybeSingle();
+
+    if (reportError) {
+      console.error("Failed to fetch technical report summary:", reportError);
+      // Soft-fail: technical_report stays null.
+    } else if (reportRow) {
+      const row = reportRow as {
+        id: string;
+        report_status: ReportStatus;
+        technician_staff_id: string;
+        updated_at: string;
+        approved_by_admin_id: string | null;
+        sent_at: string | null;
+      };
+
+      // Reuse actorMap when the technician already appears in history
+      // (overlap is common — most reports are written by staff who
+      // also moved the appointment to confirmada).
+      let technician_full_name: string | null =
+        actorMap.get(row.technician_staff_id)?.full_name ?? null;
+
+      if (!technician_full_name) {
+        const { data: techRow, error: techError } = await supabase
+          .from("staff_profiles")
+          .select("full_name")
+          .eq("id", row.technician_staff_id)
+          .maybeSingle();
+
+        if (techError) {
+          console.error("Failed to fetch report technician:", techError);
+          // Soft-fail: technician_full_name stays null.
+        } else if (techRow) {
+          technician_full_name = techRow.full_name as string;
+        }
+      }
+
+      technical_report = {
+        id: row.id,
+        report_status: row.report_status,
+        technician_staff_id: row.technician_staff_id,
+        technician_full_name,
+        updated_at: row.updated_at,
+        approved_by_admin_id: row.approved_by_admin_id,
+        sent_at: row.sent_at,
+      };
+    }
+
     const response: AppointmentDetailResponse = {
       request: {
         ...appointment,
         assigned_staff,
+        technical_report,
       },
       history: enrichedHistory,
     };
@@ -237,7 +303,7 @@ export async function PATCH(request: Request, { params }: Params) {
         {
           success: false,
           error:
-            "La finalización estará disponible cuando el informe técnico esté implementado.",
+            "La finalización estará disponible cuando el envío del informe técnico al cliente esté implementado.",
         },
         { status: 400 }
       );
