@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { NotificationLogList } from "./NotificationLogList";
 import { ReportActions } from "./ReportActions";
 import { ReportMetadataPanel } from "./ReportMetadataPanel";
 import type {
@@ -12,6 +13,10 @@ import type {
   TechnicalReportFull,
   TechnicalReportUpdateResponse,
 } from "@/lib/types/reports";
+import type {
+  ResendReportEmailResponse,
+  SendReportResponse,
+} from "@/lib/types/notifications";
 
 type Role = "admin" | "staff";
 
@@ -112,6 +117,18 @@ export function ReportEditor({
     null
   );
 
+  // Phase 10 — Send (POST /send) and Resend (POST /resend-email).
+  const [sending, setSending] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+
+  // Bumped after every send / resend (success or failure) so the
+  // NotificationLogList re-fetches its rows. router.refresh() handles
+  // server-component-rendered data; this key handles client-fetched
+  // data inside NotificationLogList.
+  const [notificationsRefreshKey, setNotificationsRefreshKey] = useState(0);
+
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Re-sync when the parent passes an updated report (e.g., after a
@@ -167,6 +184,14 @@ export function ReportEditor({
     successTimerRef.current = setTimeout(() => {
       setSaveSuccess(null);
       setTransitionSuccess(null);
+    }, SUCCESS_FLASH_MS);
+  }
+
+  function flashSendSuccess(text: string) {
+    setSendSuccess(text);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => {
+      setSendSuccess(null);
     }, SUCCESS_FLASH_MS);
   }
 
@@ -226,6 +251,110 @@ export function ReportEditor({
       setSaveError("Error de red. Intente nuevamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSend() {
+    setSending(true);
+    setSendError(null);
+    setSendSuccess(null);
+
+    try {
+      const res = await fetch(`/api/admin/reports/${reportData.id}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const body = (await res.json()) as
+        | SendReportResponse
+        | { success: false; error?: string };
+      if (!res.ok || !("success" in body) || body.success !== true) {
+        const errMessage =
+          "error" in body && typeof body.error === "string"
+            ? body.error
+            : "Error al enviar el informe";
+        setSendError(errMessage);
+        return;
+      }
+
+      const data = body.data;
+      const nextReport: TechnicalReportFull = {
+        ...reportData,
+        report_status: data.report_status,
+        sent_at: data.sent_at,
+        pdf_storage_path: data.pdf_storage_path,
+      };
+      setReportData(nextReport);
+      onUpdated?.(nextReport);
+
+      if (data.email_delivered) {
+        flashSendSuccess("Informe enviado al cliente y cita completada.");
+      } else {
+        // Partial success: DB finalization succeeded, email delivery
+        // failed. Surface as a warning-ish error so admin acts on it
+        // (the response notification carries the underlying provider
+        // message, but we do not surface raw provider tokens here).
+        setSendError(
+          "El informe se finalizó y la cita se completó, pero el correo al cliente no pudo enviarse. Usa “Reenviar correo” para intentarlo de nuevo."
+        );
+      }
+
+      // Refresh the server component so joined metadata
+      // (approved_by_admin name, sent_at formatted, etc.) re-renders
+      // with fresh data. NotificationLogList is client-fetched, so we
+      // also bump its refresh key (router.refresh() doesn't re-trigger
+      // its useEffect).
+      router.refresh();
+      setNotificationsRefreshKey((k) => k + 1);
+    } catch {
+      setSendError("Error de red. Intente nuevamente.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleResend() {
+    setResending(true);
+    setSendError(null);
+    setSendSuccess(null);
+
+    try {
+      const res = await fetch(
+        `/api/admin/reports/${reportData.id}/resend-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+      const body = (await res.json()) as
+        | ResendReportEmailResponse
+        | { success: false; error?: string };
+      if (!res.ok || !("success" in body) || body.success !== true) {
+        const errMessage =
+          "error" in body && typeof body.error === "string"
+            ? body.error
+            : "Error al reenviar el correo";
+        setSendError(errMessage);
+        return;
+      }
+
+      if (body.data.email_delivered) {
+        flashSendSuccess("Correo reenviado al cliente.");
+      } else {
+        setSendError(
+          "No se pudo reenviar el correo al cliente. Revisa el historial e intenta nuevamente."
+        );
+      }
+
+      router.refresh();
+      // The resend always inserts a new notification_logs row (success
+      // or failure) — bump the key so the list shows the new entry.
+      setNotificationsRefreshKey((k) => k + 1);
+    } catch {
+      setSendError("Error de red. Intente nuevamente.");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -342,22 +471,34 @@ export function ReportEditor({
         role={currentRole}
         reportStatus={reportData.report_status}
         isOwnReport={isOwnReport}
+        recipientEmail={reportData.appointment.email}
         isDirty={isDirty}
         saving={saving}
         transitioning={transitioning}
+        sending={sending}
+        resending={resending}
         onSave={handleSave}
         onTransition={handleTransition}
+        onSend={handleSend}
+        onResend={handleResend}
       />
 
-      {(saveError || transitionError) && (
+      {(saveError || transitionError || sendError) && (
         <p className="text-sm text-red-600">
-          {saveError ?? transitionError}
+          {saveError ?? transitionError ?? sendError}
         </p>
       )}
-      {(saveSuccess || transitionSuccess) && (
+      {(saveSuccess || transitionSuccess || sendSuccess) && (
         <p className="text-sm text-green-700">
-          {saveSuccess ?? transitionSuccess}
+          {saveSuccess ?? transitionSuccess ?? sendSuccess}
         </p>
+      )}
+
+      {reportData.report_status === "sent" && (
+        <NotificationLogList
+          reportId={reportData.id}
+          refreshKey={notificationsRefreshKey}
+        />
       )}
     </div>
   );

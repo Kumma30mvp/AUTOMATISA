@@ -292,18 +292,22 @@ export async function PATCH(request: Request, { params }: Params) {
       );
     }
 
-    // Phase 8 temporary guard: block direct transitions to
-    // "completada" until Phase 10 wires completion through the
-    // "Send PDF and complete" workflow that requires an approved
-    // technical report. The UI also hides the "Completar" button
-    // (see StatusActions.tsx). Remove BOTH guards together when
-    // Phase 10 ships.
+    // Permanent completion guard (Phase 10).
+    // The canonical completion path is POST /api/admin/reports/[id]/send,
+    // which calls fn_send_and_complete_report and atomically writes:
+    //   technical_reports.report_status='sent'
+    //   appointment_requests.status='completada'
+    //   appointment_requests.completed_at
+    //   appointment_requests.completed_by_admin_id
+    // Direct PATCH to 'completada' stays blocked so the audit columns
+    // (completed_at, completed_by_admin_id) can never be left null.
+    // The matching UI hint lives in StatusActions.tsx.
     if (parsed.data.status === "completada") {
       return NextResponse.json(
         {
           success: false,
           error:
-            "La finalización estará disponible cuando el envío del informe técnico al cliente esté implementado.",
+            "Para completar la cita, envía el informe técnico al cliente desde el editor del informe.",
         },
         { status: 400 }
       );

@@ -340,27 +340,35 @@ export function AppointmentDetail({ appointmentId, role, onClose }: Props) {
               //    the appointment is later cancelled or completed).
               if (summary) {
                 return (
-                  <div className="flex flex-col gap-3 rounded-2xl border border-surface-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-1">
-                      <ReportStatusBadge status={summary.report_status} />
-                      <p className="text-sm text-navy-900">
-                        {summary.technician_full_name ??
-                          "Técnico no disponible"}
-                      </p>
-                      <p className="text-xs text-nav">
-                        Última edición:{" "}
-                        {formatDateTime(summary.updated_at)}
-                      </p>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3 rounded-2xl border border-surface-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-1">
+                        <ReportStatusBadge status={summary.report_status} />
+                        <p className="text-sm text-navy-900">
+                          {summary.technician_full_name ??
+                            "Técnico no disponible"}
+                        </p>
+                        <p className="text-xs text-nav">
+                          Última edición:{" "}
+                          {formatDateTime(summary.updated_at)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/admin/reports/${summary.id}`)
+                        }
+                      >
+                        Ver informe
+                      </Button>
                     </div>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/admin/reports/${summary.id}`)
-                      }
-                    >
-                      Ver informe
-                    </Button>
+                    {summary.report_status === "approved_for_delivery" && (
+                      <p className="text-xs text-nav">
+                        Para finalizar la cita, abre el informe y usa
+                        &ldquo;Enviar al cliente y completar&rdquo;.
+                      </p>
+                    )}
                   </div>
                 );
               }

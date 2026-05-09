@@ -66,12 +66,16 @@ export function StatusActions({
 
   const rawAllowed = ALLOWED_TRANSITIONS[currentStatus];
 
-  // Phase 8 temporary guard: completion will be wired through the
-  // admin "Send PDF and complete" action in Phase 10 once technical
-  // reports exist. Until then, hide the direct "Completar" button so
-  // admins don't bypass the report flow. Cancellation stays available.
-  // Remove this filter when Phase 10 ships completion via the report
-  // workflow.
+  // Permanent completion gate (Phase 10).
+  // The canonical completion path is the "Send PDF and complete"
+  // action in the report editor, which calls
+  // POST /api/admin/reports/[id]/send and atomically writes
+  // technical_reports.report_status='sent' + appointment_requests
+  // (.status='completada', .completed_at, .completed_by_admin_id).
+  // The appointment-level "Completar" button stays out of this row
+  // permanently so admins can't bypass the send pipeline and leave
+  // audit columns null. The matching API guard lives in
+  // src/app/api/admin/appointment-requests/[id]/route.ts.
   const allowed = rawAllowed.filter((target) => target !== "completada");
   const completionGuarded = rawAllowed.includes("completada");
 
@@ -133,8 +137,8 @@ export function StatusActions({
       </div>
       {completionGuarded && (
         <p className="text-xs text-nav">
-          La finalización estará disponible cuando el envío del informe
-          técnico al cliente esté implementado.
+          Para completar la cita, envía el informe técnico al cliente desde
+          el editor del informe.
         </p>
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
