@@ -7,7 +7,7 @@ import {
   sendReportBodySchema,
 } from "@/lib/validations/notifications";
 import { generateReportPdf } from "@/lib/pdf/report-pdf";
-import { sendReportEmail } from "@/lib/email/resend";
+import { sendReportEmail } from "@/lib/email/smtp";
 import {
   buildReportPdfPath,
   deleteReportPdfBestEffort,
@@ -283,7 +283,7 @@ export async function POST(request: Request, { params }: Params) {
         technical_report_id: report.id,
         recipient_email: appointment.email,
         status: "pending",
-        provider: "resend",
+        provider: "gmail_smtp",
         attempt: nextAttempt,
         created_by: admin.userId,
       })

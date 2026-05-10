@@ -57,45 +57,106 @@ export function getServiceRoleKey(): string {
   return value;
 }
 
-/**
- * Resend API key for outbound email delivery (Phase 10).
- *
- * Lazy: only required when the email module is actually invoked. Builds
- * without the key continue to succeed; routes that hit the send pipeline
- * will throw at call time if the env var is missing.
- *
- * Must NOT be prefixed with NEXT_PUBLIC_. Treat as a secret on Vercel.
- */
-export function getResendApiKey(): string {
-  const value = process.env.RESEND_API_KEY;
+// =============================================================
+// Gmail SMTP env (Phase 10b)
+// =============================================================
+//
+// Phase 10 originally shipped with Resend as the email provider. Phase
+// 10b swaps that for Gmail SMTP via nodemailer + a Google App Password
+// because the project does not own a custom domain. The send pipeline,
+// retry caps, notification_logs lifecycle, and UI all stay unchanged —
+// only the underlying transport changes.
+//
+// All accessors below are lazy: builds without the env vars succeed,
+// and only routes that actually invoke the email module fail at runtime.
+// None of these may be prefixed with NEXT_PUBLIC_; treat the App
+// Password (and the user/host config alongside it) as secrets on Vercel.
+
+function readRequiredEnv(name: string, hint: string): string {
+  const value = process.env[name];
   if (!value || value.length === 0) {
     throw new Error(
-      "RESEND_API_KEY is not set. This secret is required by the email " +
-        "module used in the Phase 10 send pipeline. Add it to .env.local " +
-        "(development) and Vercel project env (preview + production). " +
-        "NEVER prefix with NEXT_PUBLIC_."
+      `${name} is not set. ${hint} ` +
+        "Add it to .env.local (development) and Vercel project env " +
+        "(preview + production). NEVER prefix with NEXT_PUBLIC_."
+    );
+  }
+  return value;
+}
+
+export function getSmtpHost(): string {
+  return readRequiredEnv(
+    "SMTP_HOST",
+    "Typically 'smtp.gmail.com' for Gmail SMTP."
+  );
+}
+
+export function getSmtpPort(): number {
+  const raw = readRequiredEnv(
+    "SMTP_PORT",
+    "Typically '465' for Gmail with implicit TLS."
+  );
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(
+      `SMTP_PORT must be a positive integer; got '${raw}'.`
+    );
+  }
+  return parsed;
+}
+
+export function getSmtpSecure(): boolean {
+  const raw = readRequiredEnv(
+    "SMTP_SECURE",
+    "Set to 'true' for implicit TLS (port 465) or 'false' for STARTTLS."
+  );
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new Error(
+    `SMTP_SECURE must be 'true' or 'false'; got '${raw}'.`
+  );
+}
+
+export function getSmtpUser(): string {
+  return readRequiredEnv(
+    "SMTP_USER",
+    "The Gmail address that owns the App Password (e.g., admin@gmail.com)."
+  );
+}
+
+/**
+ * Returns the Google App Password used to authenticate SMTP.
+ *
+ * Generated at https://myaccount.google.com/apppasswords (requires
+ * 2-Step Verification on the Gmail account). Strip spaces; the value
+ * is the 16 contiguous characters Google shows in the dialog.
+ *
+ * The error message intentionally does NOT echo the raw value, so a
+ * misconfigured deployment doesn't end up logging the secret.
+ */
+export function getSmtpAppPassword(): string {
+  const value = process.env.SMTP_APP_PASSWORD;
+  if (!value || value.length === 0) {
+    throw new Error(
+      "SMTP_APP_PASSWORD is not set. This is a Google App Password " +
+        "(16 chars, no spaces) for the SMTP_USER account. Generate it at " +
+        "https://myaccount.google.com/apppasswords. Add it to .env.local " +
+        "and Vercel project env. NEVER prefix with NEXT_PUBLIC_."
     );
   }
   return value;
 }
 
 /**
- * Verified sender address used for outbound report emails (Phase 10).
- *
- * Domain must be verified in Resend (SPF/DKIM) for production
- * deliverability. The accepted format is either a bare address
- * (`reports@automatisa.pe`) or RFC 5322 form
- * (`AUTOMATISA <reports@automatisa.pe>`); Resend handles both.
- *
- * Lazy: only required when the email module sends.
+ * Returns the From header used for outbound email. Must use the same
+ * Gmail address as `SMTP_USER` — Gmail SMTP rejects mismatched senders.
+ * Accepts a bare address (`admin@gmail.com`) or RFC 5322 form
+ * (`Administradora <admin@gmail.com>`).
  */
-export function getResendFromAddress(): string {
-  const value = process.env.RESEND_FROM_ADDRESS;
-  if (!value || value.length === 0) {
-    throw new Error(
-      "RESEND_FROM_ADDRESS is not set. This is the verified sender used by " +
-        "the email module. Add it to .env.local and Vercel project env."
-    );
-  }
-  return value;
+export function getSmtpFromAddress(): string {
+  return readRequiredEnv(
+    "SMTP_FROM_ADDRESS",
+    "Used as the email From header. Must match SMTP_USER's domain. " +
+      "Format: 'Administradora <admin@gmail.com>' or 'admin@gmail.com'."
+  );
 }

@@ -1,10 +1,24 @@
 import "server-only";
 
-import { Resend } from "resend";
-import { getResendApiKey, getResendFromAddress } from "@/lib/env";
+import nodemailer from "nodemailer";
+import {
+  getSmtpAppPassword,
+  getSmtpFromAddress,
+  getSmtpHost,
+  getSmtpPort,
+  getSmtpSecure,
+  getSmtpUser,
+} from "@/lib/env";
 
 /**
- * Email module for outbound technical-report delivery — Phase 10.
+ * Email module for outbound technical-report delivery — Phase 10b.
+ *
+ * Phase 10 originally used Resend with a custom verified domain. Phase
+ * 10b swaps that for Gmail SMTP via nodemailer + a Google App Password
+ * because the project does not own a custom domain. The exported
+ * `sendReportEmail(input) → { providerMessageId }` contract is the same
+ * as the Resend version, so the send / resend route handlers consume
+ * this module unchanged.
  *
  * Server-only: this file is imported only from API route handlers (the
  * `import "server-only"` directive at the top makes any client-component
@@ -12,24 +26,24 @@ import { getResendApiKey, getResendFromAddress } from "@/lib/env";
  *
  * Routes that consume this module MUST set
  *   export const runtime = "nodejs";
- * The Resend SDK is Node-targeted.
+ * nodemailer is Node-targeted.
  *
- * Out of scope here (later steps):
- *   - notification_logs INSERT/UPDATE (Phase 10 Step 8 — owned by the API
- *     route, not this module)
- *   - calling fn_send_and_complete_report (Step 8)
- *   - storage upload + signed URL minting (Step 8)
- *   - retry / rate-limit logic (Step 9)
- *
- * Public surface:
- *   - sendReportEmail(input): single function that builds the message,
- *     attaches the PDF, sends, and returns the provider message id.
+ * Out of scope here:
+ *   - notification_logs INSERT/UPDATE (Step 8 of Phase 10 — owned by
+ *     the API route, not this module)
+ *   - calling fn_send_and_complete_report
+ *   - storage upload + signed URL minting
+ *   - retry / rate-limit logic
  *
  * Why a per-call factory (no module-level singleton):
- *   The Resend client holds an API key and an internal HTTP agent. In a
- *   serverless runtime, module-level singletons can outlive a request and
- *   leak credentials across invocations. Cheap to construct; build per
- *   call.
+ *   nodemailer transporters hold an SMTP connection plus credentials.
+ *   In a serverless runtime, module-level singletons can outlive a
+ *   request and leak credentials / sockets across invocations. Building
+ *   a fresh transporter is cheap and guarantees no cross-request leaks.
+ *
+ * No connection pooling: passing `pool: true` to nodemailer would keep
+ * SMTP connections alive between sends, which only matters in long-
+ * lived Node processes — not on Vercel's per-invocation runtime.
  */
 
 export type SendReportEmailInput = {
@@ -52,13 +66,22 @@ export type SendReportEmailInput = {
 };
 
 export type SendReportEmailResult = {
-  /** The Resend message id (returned in `data.id`). Persist in
+  /** The SMTP Message-Id header set by Gmail (e.g.,
+   *  `<…@…gmail.com>`). Persist in
    *  notification_logs.provider_message_id by the API route. */
   providerMessageId: string;
 };
 
-function createResendClient(): Resend {
-  return new Resend(getResendApiKey());
+function createTransporter(): nodemailer.Transporter {
+  return nodemailer.createTransport({
+    host: getSmtpHost(),
+    port: getSmtpPort(),
+    secure: getSmtpSecure(),
+    auth: {
+      user: getSmtpUser(),
+      pass: getSmtpAppPassword(),
+    },
+  });
 }
 
 function escapeHtml(value: string): string {
@@ -131,10 +154,13 @@ function buildText({
 }
 
 /**
- * Sends the technical report email with the PDF attached.
+ * Sends the technical report email with the PDF attached via Gmail SMTP.
  *
- * Throws on any provider error (the route catches and records the
- * failure in notification_logs).
+ * Throws on any provider error; the route's existing try/catch records
+ * the failure in notification_logs (status='failed', error_message
+ * captured). The thrown message is wrapped in `"SMTP send failed: …"`
+ * so the route's diagnostic log distinguishes provider errors from
+ * upstream issues.
  */
 export async function sendReportEmail(
   input: SendReportEmailInput
@@ -142,32 +168,32 @@ export async function sendReportEmail(
   const { to, customerName, carPlate, reportShortId, pdfBuffer, pdfFilename } =
     input;
 
-  const client = createResendClient();
+  const transporter = createTransporter();
 
-  const { data, error } = await client.emails.send({
-    from: getResendFromAddress(),
-    to,
-    subject: buildSubject(carPlate, reportShortId),
-    html: buildHtml({ customerName, carPlate, reportShortId }),
-    text: buildText({ customerName, carPlate, reportShortId }),
-    attachments: [
-      {
-        filename: pdfFilename,
-        content: pdfBuffer,
-        contentType: "application/pdf",
-      },
-    ],
-  });
-
-  if (error) {
-    throw new Error(
-      `Resend send failed: ${error.message ?? "unknown error"}` +
-        (error.name ? ` (${error.name})` : "")
-    );
-  }
-  if (!data?.id) {
-    throw new Error("Resend send succeeded but returned no message id");
+  let info: Awaited<ReturnType<typeof transporter.sendMail>>;
+  try {
+    info = await transporter.sendMail({
+      from: getSmtpFromAddress(),
+      to,
+      subject: buildSubject(carPlate, reportShortId),
+      html: buildHtml({ customerName, carPlate, reportShortId }),
+      text: buildText({ customerName, carPlate, reportShortId }),
+      attachments: [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    throw new Error(`SMTP send failed: ${message}`);
   }
 
-  return { providerMessageId: data.id };
+  if (!info.messageId) {
+    throw new Error("SMTP send succeeded but returned no message id");
+  }
+
+  return { providerMessageId: info.messageId };
 }
