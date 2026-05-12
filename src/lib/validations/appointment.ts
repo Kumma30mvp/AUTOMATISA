@@ -41,85 +41,106 @@ export { getTodayInLima, getIsoDayOfWeek, getCurrentTimeInLima };
 // --- Zod Schema ---
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export const appointmentRequestSchema = z.object({
-  // Required fields
-  dni: z
-    .string({ message: "El DNI es obligatorio" })
-    .regex(/^\d{8}$/, { message: "El DNI debe tener exactamente 8 dígitos" }),
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 10c — public-form schema (used by both the AppointmentForm client
+// component and the POST /api/appointment-requests server route).
+// ─────────────────────────────────────────────────────────────────────────────
 
-  phone: z
-    .string({ message: "El teléfono es obligatorio" })
-    .regex(/^\+?[0-9]{7,15}$/, {
-      message: "El teléfono debe tener entre 7 y 15 dígitos",
+export const DOCUMENT_TYPES = ["DNI", "RUC"] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+const DNI_DIGITS_REGEX = /^\d{8}$/;
+const RUC_DIGITS_REGEX = /^\d{11}$/;
+const PHONE_REGEX = /^\d{9}$/;
+const PLATE_REGEX = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/;
+
+export const publicAppointmentFormSchema = z
+  .object({
+    document_type: z.enum(DOCUMENT_TYPES, {
+      message: "Seleccione DNI o RUC",
     }),
 
-  email: z
-    .email({ message: "El correo electrónico no es válido" })
-    .transform((v) => v.toLowerCase()),
+    document_number: z
+      .string({ message: "El documento es obligatorio" })
+      .min(1, { message: "El documento es obligatorio" }),
 
-  car_plate: z
-    .string({ message: "La placa del vehículo es obligatoria" })
-    .regex(/^[A-Za-z0-9-]{3,10}$/, {
-      message: "La placa debe tener entre 3 y 10 caracteres alfanuméricos",
-    })
-    .transform((v) => v.toUpperCase()),
+    phone: z
+      .string({ message: "El teléfono es obligatorio" })
+      .regex(PHONE_REGEX, {
+        message: "El teléfono debe tener exactamente 9 dígitos",
+      }),
 
-  problem_description: z
-    .string({ message: "La descripción del problema es obligatoria" })
-    .trim()
-    .min(1, { message: "La descripción del problema es obligatoria" })
-    .max(2000, {
-      message: "La descripción no puede exceder 2000 caracteres",
-    }),
+    car_plate: z
+      .string({ message: "La placa del vehículo es obligatoria" })
+      .regex(PLATE_REGEX, {
+        message: "La placa debe tener el formato ABC-123",
+      }),
 
-  // Optional fields
-  full_name: z.string().trim().max(200).optional(),
+    problem_description: z
+      .string({ message: "La descripción del problema es obligatoria" })
+      .trim()
+      .min(1, { message: "La descripción del problema es obligatoria" })
+      .max(2000, {
+        message: "La descripción no puede exceder 2000 caracteres",
+      }),
 
-  vehicle_brand: z.string().trim().max(100).optional(),
+    full_name: z.string().trim().max(200).optional(),
+    vehicle_brand: z.string().trim().max(100).optional(),
+    vehicle_model: z.string().trim().max(100).optional(),
+    service_id: z
+      .uuid({ message: "El ID del servicio no es válido" })
+      .optional(),
 
-  vehicle_model: z.string().trim().max(100).optional(),
+    preferred_date: z
+      .string()
+      .regex(DATE_REGEX, {
+        message: "La fecha debe tener formato YYYY-MM-DD",
+      })
+      .refine(
+        (val) => {
+          const [y, m, d] = val.split("-").map(Number);
+          const date = new Date(Date.UTC(y, m - 1, d));
+          return (
+            date.getUTCFullYear() === y &&
+            date.getUTCMonth() === m - 1 &&
+            date.getUTCDate() === d
+          );
+        },
+        { message: "La fecha no es válida" }
+      )
+      .refine((val) => val >= getTodayInLima(), {
+        message: "La fecha preferida no puede ser en el pasado",
+      })
+      .refine(
+        (val) => {
+          const [y, m, d] = val.split("-").map(Number);
+          return new Date(Date.UTC(y, m - 1, d)).getUTCDay() !== 0;
+        },
+        {
+          message:
+            "Los domingos no atendemos. Por favor seleccione otro día.",
+        }
+      )
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.document_type !== "DNI" || DNI_DIGITS_REGEX.test(data.document_number),
+    {
+      path: ["document_number"],
+      message: "El DNI debe tener exactamente 8 dígitos",
+    }
+  )
+  .refine(
+    (data) =>
+      data.document_type !== "RUC" || RUC_DIGITS_REGEX.test(data.document_number),
+    {
+      path: ["document_number"],
+      message: "El RUC debe tener exactamente 11 dígitos",
+    }
+  );
 
-  service_id: z.uuid({ message: "El ID del servicio no es válido" }).optional(),
-
-  preferred_date: z
-    .string()
-    .regex(DATE_REGEX, {
-      message: "La fecha debe tener formato YYYY-MM-DD",
-    })
-    .refine(
-      (val) => {
-        // Validate it's a real calendar date
-        const [y, m, d] = val.split("-").map(Number);
-        const date = new Date(Date.UTC(y, m - 1, d));
-        return (
-          date.getUTCFullYear() === y &&
-          date.getUTCMonth() === m - 1 &&
-          date.getUTCDate() === d
-        );
-      },
-      { message: "La fecha no es válida" }
-    )
-    .refine(
-      (val) => {
-        const today = getTodayInLima();
-        return val >= today;
-      },
-      { message: "La fecha preferida no puede ser en el pasado" }
-    )
-    .optional(),
-
-  preferred_time: z
-    .string()
-    .regex(TIME_REGEX, {
-      message: "La hora debe tener formato HH:MM (24 horas)",
-    })
-    .optional(),
-
-  additional_notes: z.string().trim().max(2000).optional(),
-});
-
-export type AppointmentRequestInput = z.infer<
-  typeof appointmentRequestSchema
+export type PublicAppointmentFormInput = z.infer<
+  typeof publicAppointmentFormSchema
 >;

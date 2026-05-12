@@ -1,4 +1,7 @@
 import type { TechnicalReportSummary } from "./reports";
+import type { DocumentType } from "@/lib/validations/appointment";
+
+export type { DocumentType };
 
 export type AppointmentStatus =
   | "pendiente"
@@ -6,23 +9,63 @@ export type AppointmentStatus =
   | "cancelada"
   | "completada";
 
+/**
+ * Payload accepted by POST /api/appointment-requests after Phase 10c.
+ *
+ * Required: document_type, document_number, phone, car_plate,
+ * problem_description. Everything else is optional and nullable so the
+ * route can explicitly NULL the legacy columns (dni, email,
+ * preferred_time, additional_notes) when the simplified public form
+ * doesn't carry them. `dni` is still populated by the route — only
+ * when document_type='DNI' — for backwards compatibility with admin
+ * code that still reads `row.dni`.
+ */
 export type AppointmentRequestInsert = {
-  dni: string;
+  document_type: DocumentType;
+  document_number: string;
   phone: string;
-  email: string;
   car_plate: string;
   problem_description: string;
-  full_name?: string;
-  vehicle_brand?: string;
-  vehicle_model?: string;
-  service_id?: string;
-  preferred_date?: string;
-  preferred_time?: string;
-  additional_notes?: string;
+  full_name?: string | null;
+  vehicle_brand?: string | null;
+  vehicle_model?: string | null;
+  service_id?: string | null;
+  preferred_date?: string | null;
+  // Phase 10c legacy columns — nullable on INSERT.
+  dni?: string | null;
+  email?: string | null;
+  preferred_time?: string | null;
+  additional_notes?: string | null;
 };
 
-export type AppointmentRequestRow = AppointmentRequestInsert & {
+/**
+ * Shape of an `appointment_requests` row as consumed by admin code.
+ *
+ * Phase 10c (migration 009) made email/dni/preferred_time/additional_notes
+ * nullable in the DB and made document_type/document_number the canonical
+ * identity columns. The legacy fields are widened to `string | null`
+ * here so admin/staff surfaces can render fallbacks instead of empty
+ * strings. The TechnicalReportFull.appointment slice in `reports.ts`
+ * is intentionally untouched — its email/dni readers belong to the
+ * Phase 10/10b SMTP path which Step 8 supersedes with WhatsApp.
+ */
+export type AppointmentRequestRow = {
   id: string;
+  document_type: DocumentType;
+  document_number: string;
+  phone: string;
+  car_plate: string;
+  problem_description: string;
+  full_name?: string | null;
+  vehicle_brand?: string | null;
+  vehicle_model?: string | null;
+  service_id?: string | null;
+  preferred_date?: string | null;
+  // Phase 10c legacy columns — nullable in DB and now in TS.
+  dni: string | null;
+  email: string | null;
+  preferred_time?: string | null;
+  additional_notes?: string | null;
   status: AppointmentStatus;
   created_at: string;
   updated_at: string;

@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { NotificationLogList } from "./NotificationLogList";
@@ -407,8 +409,31 @@ export function ReportEditor({
     }
   }
 
+  function handleBack() {
+    if (isDirty) return;
+    router.push(currentRole === "admin" ? "/admin/citas" : "/admin/staff");
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={handleBack}
+          disabled={isDirty}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
+        {isDirty && (
+          <p className="text-xs text-nav">
+            Guarda los cambios antes de volver.
+          </p>
+        )}
+      </div>
+
       <ReportMetadataPanel
         reportStatus={reportData.report_status}
         technician={reportData.technician}

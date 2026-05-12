@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Menu, X, Phone } from "lucide-react";
 import Logo from "@/components/icons/Logo";
 import { NAV_LINKS, BUSINESS } from "@/lib/constants";
@@ -38,6 +39,12 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden items-center gap-6 lg:flex">
+          <Link
+            href="/admin/login"
+            className="text-sm font-body tracking-wide text-nav transition-colors hover:text-navy-900"
+          >
+            Colaboradores
+          </Link>
           <a
             href={`tel:${BUSINESS.phoneRaw}`}
             aria-label="Llamar por teléfono"
@@ -87,6 +94,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              href="/admin/login"
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg px-4 py-3 text-sm font-medium text-nav transition-colors hover:bg-surface-100 hover:text-navy-900"
+            >
+              Colaboradores
+            </Link>
             <a
               href="#agendar"
               onClick={() => setIsOpen(false)}

@@ -9,8 +9,12 @@ import type {
 } from "@/lib/types/history";
 
 type Props = {
-  dni: string;
-  email: string;
+  /** DNI of the customer, or null when the appointment was registered
+   *  with a RUC (Phase 10c) or has no legacy dni populated. */
+  dni: string | null;
+  /** Customer email, or null. Phase 10c submissions no longer collect
+   *  email so most new rows are null. */
+  email: string | null;
   /**
    * Optional appointment id to omit from the rendered list — typically
    * the appointment whose detail is currently open. The route returns
@@ -49,13 +53,20 @@ export function CustomerHistoryPanel({
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
 
+  const canSearch = Boolean(dni || email);
+
   async function fetchHistory() {
+    if (!canSearch) {
+      setItems([]);
+      setHasFetched(true);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const qs = new URLSearchParams();
-      qs.set("dni", dni);
-      qs.set("email", email);
+      if (dni) qs.set("dni", dni);
+      if (email) qs.set("email", email);
       const res = await fetch(`/api/admin/customer-history?${qs.toString()}`);
       const body = await res.json();
       if (!res.ok) {
@@ -124,7 +135,9 @@ export function CustomerHistoryPanel({
 
           {!loading && !error && hasFetched && visibleItems.length === 0 && (
             <p className="text-sm text-nav">
-              Sin historial previo de este cliente.
+              {canSearch
+                ? "Sin historial previo de este cliente."
+                : "Historial no disponible: este registro no tiene DNI ni correo asociados."}
             </p>
           )}
 

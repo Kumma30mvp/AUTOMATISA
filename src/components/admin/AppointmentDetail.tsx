@@ -40,6 +40,14 @@ function formatDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+function formatPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  if (/^\d{9}$/.test(raw)) {
+    return `+51 ${raw.slice(0, 3)} ${raw.slice(3, 6)} ${raw.slice(6)}`;
+  }
+  return raw;
+}
+
 function Field({
   label,
   value,
@@ -202,8 +210,11 @@ export function AppointmentDetail({ appointmentId, role, onClose }: Props) {
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="Nombre" value={detail.request.full_name} />
-              <Field label="DNI" value={detail.request.dni} />
-              <Field label="Teléfono" value={detail.request.phone} />
+              <Field
+                label={detail.request.document_type ?? "Documento"}
+                value={detail.request.document_number ?? detail.request.dni}
+              />
+              <Field label="Teléfono" value={formatPhone(detail.request.phone)} />
               <Field label="Correo" value={detail.request.email} />
             </div>
             <div className="mt-3">

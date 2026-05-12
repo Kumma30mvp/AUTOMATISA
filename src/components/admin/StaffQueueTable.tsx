@@ -61,7 +61,7 @@ export function StaffQueueTable({ rows, total, page, pageSize, role }: Props) {
           <thead className="bg-surface-50 text-left text-xs uppercase tracking-wide text-nav">
             <tr>
               <th className="px-4 py-3">Recibida</th>
-              <th className="px-4 py-3">DNI</th>
+              <th className="px-4 py-3">Documento</th>
               <th className="px-4 py-3">Nombre</th>
               <th className="px-4 py-3">Placa</th>
               <th className="px-4 py-3">Servicio</th>
@@ -86,7 +86,9 @@ export function StaffQueueTable({ rows, total, page, pageSize, role }: Props) {
                 <td className="whitespace-nowrap px-4 py-3">
                   {formatDateTime(r.created_at)}
                 </td>
-                <td className="px-4 py-3">{r.dni}</td>
+                <td className="px-4 py-3">
+                  {r.document_number ?? r.dni ?? "—"}
+                </td>
                 <td className="px-4 py-3">{r.full_name ?? "—"}</td>
                 <td className="px-4 py-3 font-mono">{r.car_plate}</td>
                 <td className="px-4 py-3">
