@@ -1,15 +1,20 @@
 import type { ReportStatus } from "./reports";
 
 // =============================================================
-// Enums (mirror migration 008)
+// Enums (mirror migration 008 + 009)
 // =============================================================
 
 /**
- * Mirrors the Postgres `notification_type` ENUM created in migration 008.
- * Single member in v1; the enum is extensible (e.g., SMS, WhatsApp, etc.)
- * — add to both the DB ENUM and this union when widening.
+ * Mirrors the Postgres `notification_type` ENUM.
+ *
+ *   report_pdf_email    — legacy Phase 10/10b SMTP path. Kept for
+ *                          backwards compatibility with historical rows
+ *                          and as a fallback while WhatsApp is the
+ *                          canonical delivery channel.
+ *   report_pdf_whatsapp — Phase 10c manual-handoff WhatsApp delivery.
+ *                          Added by migration 009.
  */
-export type NotificationType = "report_pdf_email";
+export type NotificationType = "report_pdf_email" | "report_pdf_whatsapp";
 
 /**
  * Mirrors the Postgres `notification_status` ENUM created in migration 008.
@@ -38,7 +43,12 @@ export type NotificationLogRow = {
   notification_type: NotificationType;
   appointment_request_id: string;
   technical_report_id: string;
-  recipient_email: string;
+  /** Email recipient. Nullable after Phase 10c (migration 009) — only
+   *  populated for `report_pdf_email` rows. WhatsApp rows leave this NULL. */
+  recipient_email: string | null;
+  /** WhatsApp recipient (9-digit national number, no +51). Phase 10c.
+   *  Populated for `report_pdf_whatsapp` rows; NULL for email rows. */
+  recipient_phone: string | null;
   status: NotificationStatus;
   provider: string;
   provider_message_id: string | null;
@@ -51,9 +61,9 @@ export type NotificationLogRow = {
 };
 
 /**
- * Compact log summary embedded in send / resend response payloads. Lets
- * the UI render the latest attempt's status badge without fetching the
- * full notifications list.
+ * Compact log summary embedded in send / resend response payloads.
+ * Legacy email-channel shape; the WhatsApp flow returns the full
+ * NotificationLogRow instead.
  */
 export type NotificationLogSummary = {
   id: string;
@@ -61,7 +71,9 @@ export type NotificationLogSummary = {
   attempt: number;
   provider_message_id: string | null;
   error_message: string | null;
-  recipient_email: string;
+  /** Nullable after Phase 10c — historical email rows populate this;
+   *  WhatsApp rows leave it NULL. */
+  recipient_email: string | null;
   created_at: string;
   sent_at: string | null;
 };
@@ -129,5 +141,60 @@ export type PdfUrlResponse = {
     signed_url: string;
     /** ISO timestamp at which the signed URL stops working. */
     expires_at: string;
+  };
+};
+
+/**
+ * POST /api/admin/reports/[id]/prepare-whatsapp  (Phase 10c)
+ *
+ * Stages a WhatsApp delivery: generates the PDF, uploads it to private
+ * Storage, inserts a `pending` notification_logs row, and signs a URL.
+ * Does NOT call the RPC and does NOT change report or appointment state
+ * — the admin manually sends the WhatsApp message, then confirms via
+ * `confirm-whatsapp-sent`.
+ */
+export type PrepareWhatsAppResponse = {
+  success: true;
+  data: {
+    /** Ready-to-open wa.me URL with prefilled Spanish message. */
+    wa_link: string;
+    /** Signed PDF URL embedded in the wa_link message — also returned
+     *  separately so the UI can show a copy/preview affordance. */
+    signed_url: string;
+    /** ISO timestamp at which the signed URL expires. */
+    expires_at: string;
+    /** Storage path of the uploaded PDF. Round-tripped by the client to
+     *  the confirm route — both server-side regex checks AND the RPC
+     *  re-validate the path against `reports/<reportId>/...pdf`. */
+    pdf_storage_path: string;
+    /** Full row of the freshly inserted pending log. The WhatsApp flow
+     *  returns the row directly (rather than the legacy
+     *  NotificationLogSummary) so both recipient_email and
+     *  recipient_phone are present for the UI. */
+    notification: NotificationLogRow;
+  };
+};
+
+/**
+ * POST /api/admin/reports/[id]/confirm-whatsapp-sent  (Phase 10c)
+ *
+ * Finishes a previously-prepared WhatsApp delivery. `cancelled=false`
+ * means the admin confirmed the message was sent — the RPC fires and
+ * the report/appointment transition atomically. `cancelled=true` means
+ * the admin aborted post-prepare — the pending log is marked failed,
+ * the orphaned PDF is best-effort deleted, and no state changes.
+ */
+export type ConfirmWhatsAppResponse = {
+  success: true;
+  data: {
+    /** false = sent + completed. true = admin cancelled. */
+    cancelled: boolean;
+    /** Effective report status after this call. `sent` on confirmed,
+     *  `approved_for_delivery` on cancellation. */
+    report_status: ReportStatus;
+    /** ISO timestamp; only populated when cancelled=false. */
+    sent_at: string | null;
+    /** Updated log row. */
+    notification: NotificationLogRow;
   };
 };

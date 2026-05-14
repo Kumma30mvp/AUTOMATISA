@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
 import type {
   ReportStatus,
   ReportTransitionTarget,
@@ -16,21 +14,22 @@ type Props = {
   /** True when the current user is the report's technician.
    *  Staff-only signal — admins are not gated by ownership. */
   isOwnReport: boolean;
-  /** Customer email address shown in the Send confirmation modal so the
-   *  admin can verify the recipient before finalizing. */
-  recipientEmail: string;
   isDirty: boolean;
   saving: boolean;
   transitioning: ReportTransitionTarget | null;
-  /** Phase 10 — Send-PDF-and-complete in flight. */
-  sending: boolean;
-  /** Phase 10 — Resend-email in flight. */
+  /** Phase 10c — prepare-whatsapp in flight. Replaces Phase 10's
+   *  `sending` for the approved_for_delivery action. */
+  preparingWhatsApp: boolean;
+  /** Phase 10 (legacy) — resend-email in flight. */
   resending: boolean;
   onSave: () => void;
   onTransition: (target: ReportTransitionTarget) => void;
-  /** Phase 10 — POST /api/admin/reports/[id]/send (admin only). */
-  onSend: () => void;
-  /** Phase 10 — POST /api/admin/reports/[id]/resend-email (admin only). */
+  /** Phase 10c — POST /api/admin/reports/[id]/prepare-whatsapp (admin only).
+   *  Triggers PDF gen + upload + log INSERT + wa.me link build. Does NOT
+   *  finalize the report; the editor then renders a confirmation modal
+   *  while the admin sends the message manually. */
+  onPrepareWhatsApp: () => void;
+  /** Phase 10 (legacy) — POST /api/admin/reports/[id]/resend-email (admin only). */
   onResend: () => void;
 };
 
@@ -74,22 +73,20 @@ export function ReportActions({
   role,
   reportStatus,
   isOwnReport,
-  recipientEmail,
   isDirty,
   saving,
   transitioning,
-  sending,
+  preparingWhatsApp,
   resending,
   onSave,
   onTransition,
-  onSend,
+  onPrepareWhatsApp,
   onResend,
 }: Props) {
-  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
-
   // ───────────────── Sent state ─────────────────
-  // Phase 10: admin can re-attempt email delivery via POST
-  // /resend-email; staff sees only the read-only hint.
+  // Phase 10c: WhatsApp delivery is manual handoff, so there is no
+  // automatic "Reenviar WhatsApp" action yet. Admin keeps the legacy
+  // email "Reenviar correo" affordance for already-sent reports.
   if (reportStatus === "sent") {
     if (role === "admin") {
       return (
@@ -138,7 +135,7 @@ export function ReportActions({
   }
 
   // ───────────────── Editable states ─────────────────
-  const isBusy = saving || transitioning !== null || sending;
+  const isBusy = saving || transitioning !== null || preparingWhatsApp;
   const canSave = isDirty && !isBusy;
 
   // Build the role × status transition list.
@@ -168,103 +165,56 @@ export function ReportActions({
     });
   }
 
-  // Send-PDF-and-complete is exposed only to admins on
-  // approved_for_delivery. The button opens a confirmation modal;
-  // confirming fires onSend() (which calls POST /send).
-  const canShowSend =
+  // Phase 10c: WhatsApp prepare is the only delivery affordance on
+  // approved_for_delivery for admins. Clicking it triggers PDF gen +
+  // upload + log INSERT + wa.me link; the editor then opens the link
+  // and renders a confirm/cancel UI.
+  const canShowWhatsApp =
     role === "admin" && reportStatus === "approved_for_delivery";
 
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="primary"
+          size="md"
+          loading={saving}
+          disabled={!canSave}
+          onClick={() => onSave()}
+        >
+          Guardar cambios
+        </Button>
+
+        {canShowWhatsApp && (
           <Button
             variant="primary"
             size="md"
-            loading={saving}
-            disabled={!canSave}
-            onClick={() => onSave()}
+            loading={preparingWhatsApp}
+            disabled={isBusy || isDirty}
+            onClick={() => onPrepareWhatsApp()}
           >
-            Guardar cambios
+            Enviar por WhatsApp y completar
           </Button>
-
-          {canShowSend && (
-            <Button
-              variant="primary"
-              size="md"
-              loading={sending}
-              disabled={isBusy || isDirty}
-              onClick={() => setConfirmSendOpen(true)}
-            >
-              Enviar al cliente y completar
-            </Button>
-          )}
-
-          {transitions.map((t) => (
-            <Button
-              key={t.target}
-              variant={t.variant}
-              size="md"
-              loading={transitioning === t.target}
-              disabled={isBusy || isDirty}
-              onClick={() => onTransition(t.target)}
-            >
-              {t.label}
-            </Button>
-          ))}
-        </div>
-        {isDirty && (transitions.length > 0 || canShowSend) && (
-          <p className="text-xs text-nav">
-            Guarda los cambios antes de cambiar el estado del informe.
-          </p>
         )}
-      </div>
 
-      <Modal
-        open={confirmSendOpen}
-        onClose={() => {
-          // Allow closing while in flight too — the underlying request
-          // is already running and the editor will surface its result.
-          setConfirmSendOpen(false);
-        }}
-        title="Enviar informe al cliente"
-      >
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-sm text-navy-900">
-              Se enviará el informe técnico al cliente:
-            </p>
-            <p className="mt-1 break-all text-sm font-medium text-navy-900">
-              {recipientEmail}
-            </p>
-          </div>
-          <p className="text-sm text-navy-900">
-            Esta acción finaliza el informe (queda inmutable) y completa la
-            cita. No se puede deshacer.
-          </p>
-          <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setConfirmSendOpen(false)}
-              disabled={sending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              loading={sending}
-              onClick={() => {
-                setConfirmSendOpen(false);
-                onSend();
-              }}
-            >
-              Enviar y completar
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
+        {transitions.map((t) => (
+          <Button
+            key={t.target}
+            variant={t.variant}
+            size="md"
+            loading={transitioning === t.target}
+            disabled={isBusy || isDirty}
+            onClick={() => onTransition(t.target)}
+          >
+            {t.label}
+          </Button>
+        ))}
+      </div>
+      {isDirty && (transitions.length > 0 || canShowWhatsApp) && (
+        <p className="text-xs text-nav">
+          Guarda los cambios antes de cambiar el estado del informe.
+        </p>
+      )}
+    </div>
   );
 }

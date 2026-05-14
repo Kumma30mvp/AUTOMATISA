@@ -7,6 +7,7 @@ import type {
   NotificationLogListResponse,
   NotificationLogRow,
   NotificationStatus,
+  NotificationType,
 } from "@/lib/types/notifications";
 
 type Props = {
@@ -28,6 +29,18 @@ const STATUS_STYLES: Record<NotificationStatus, string> = {
   sent: "bg-green-100 text-green-700 border-green-200",
   failed: "bg-red-100 text-red-700 border-red-200",
 };
+
+const CHANNEL_LABELS: Record<NotificationType, string> = {
+  report_pdf_email: "vía correo",
+  report_pdf_whatsapp: "vía WhatsApp",
+};
+
+function formatRecipient(log: NotificationLogRow): string {
+  if (log.notification_type === "report_pdf_whatsapp") {
+    return log.recipient_phone ? `+51 ${log.recipient_phone}` : "—";
+  }
+  return log.recipient_email ?? "—";
+}
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("es-PE", {
@@ -157,12 +170,17 @@ export function NotificationLogList({ reportId, refreshKey }: Props) {
                     Destinatario
                   </p>
                   <p className="break-all text-navy-900">
-                    {log.recipient_email}
+                    {formatRecipient(log)}
                   </p>
                 </div>
                 <div>
-                  <p className="uppercase tracking-wide text-nav">Proveedor</p>
-                  <p className="text-navy-900">{log.provider}</p>
+                  <p className="uppercase tracking-wide text-nav">Canal</p>
+                  <p className="text-navy-900">
+                    {log.provider}{" "}
+                    <span className="text-nav">
+                      ({CHANNEL_LABELS[log.notification_type]})
+                    </span>
+                  </p>
                 </div>
                 <div>
                   <p className="uppercase tracking-wide text-nav">Creado</p>

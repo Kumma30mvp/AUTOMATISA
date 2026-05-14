@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Textarea } from "@/components/ui/Textarea";
 import { NotificationLogList } from "./NotificationLogList";
 import { ReportActions } from "./ReportActions";
@@ -16,8 +17,9 @@ import type {
   TechnicalReportUpdateResponse,
 } from "@/lib/types/reports";
 import type {
+  ConfirmWhatsAppResponse,
+  PrepareWhatsAppResponse,
   ResendReportEmailResponse,
-  SendReportResponse,
 } from "@/lib/types/notifications";
 
 type Role = "admin" | "staff";
@@ -119,8 +121,29 @@ export function ReportEditor({
     null
   );
 
-  // Phase 10 — Send (POST /send) and Resend (POST /resend-email).
-  const [sending, setSending] = useState(false);
+  // Phase 10c — WhatsApp manual handoff. Replaces the Phase 10 email
+  // Send modal with a prepare → confirm/cancel flow:
+  //
+  //   preparingWhatsApp  prepare-whatsapp request in flight
+  //   waPrepared         non-null when prepare succeeded; the editor
+  //                      renders a confirmation modal until the admin
+  //                      confirms or cancels
+  //   confirmingWhatsApp confirm-whatsapp-sent request in flight
+  //   cancellingWhatsApp confirm-whatsapp-sent (cancel branch) in flight
+  const [preparingWhatsApp, setPreparingWhatsApp] = useState(false);
+  const [waPrepared, setWaPrepared] = useState<
+    | {
+        wa_link: string;
+        signed_url: string;
+        pdf_storage_path: string;
+        notification_log_id: string;
+      }
+    | null
+  >(null);
+  const [confirmingWhatsApp, setConfirmingWhatsApp] = useState(false);
+  const [cancellingWhatsApp, setCancellingWhatsApp] = useState(false);
+
+  // Phase 10 (legacy) — resend-email button on already-sent reports.
   const [resending, setResending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
@@ -256,25 +279,83 @@ export function ReportEditor({
     }
   }
 
-  async function handleSend() {
-    setSending(true);
+  async function handleStartWhatsAppPrepare() {
+    setPreparingWhatsApp(true);
     setSendError(null);
     setSendSuccess(null);
 
     try {
-      const res = await fetch(`/api/admin/reports/${reportData.id}/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      const res = await fetch(
+        `/api/admin/reports/${reportData.id}/prepare-whatsapp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
       const body = (await res.json()) as
-        | SendReportResponse
+        | PrepareWhatsAppResponse
         | { success: false; error?: string };
       if (!res.ok || !("success" in body) || body.success !== true) {
         const errMessage =
           "error" in body && typeof body.error === "string"
             ? body.error
-            : "Error al enviar el informe";
+            : "Error al preparar el envío por WhatsApp";
+        setSendError(errMessage);
+        return;
+      }
+
+      const data = body.data;
+      setWaPrepared({
+        wa_link: data.wa_link,
+        signed_url: data.signed_url,
+        pdf_storage_path: data.pdf_storage_path,
+        notification_log_id: data.notification.id,
+      });
+
+      // Open WhatsApp in a new tab. Pop-up blockers may reject this if
+      // the click was already async — the modal also surfaces the link
+      // as a backup affordance.
+      if (typeof window !== "undefined") {
+        window.open(data.wa_link, "_blank", "noopener,noreferrer");
+      }
+
+      // Refresh the notifications list so the new pending row appears.
+      setNotificationsRefreshKey((k) => k + 1);
+    } catch {
+      setSendError("Error de red. Intente nuevamente.");
+    } finally {
+      setPreparingWhatsApp(false);
+    }
+  }
+
+  async function handleConfirmWhatsAppSent() {
+    if (!waPrepared) return;
+    setConfirmingWhatsApp(true);
+    setSendError(null);
+    setSendSuccess(null);
+
+    try {
+      const res = await fetch(
+        `/api/admin/reports/${reportData.id}/confirm-whatsapp-sent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            confirmed: true,
+            notification_log_id: waPrepared.notification_log_id,
+            pdf_storage_path: waPrepared.pdf_storage_path,
+          }),
+        }
+      );
+      const body = (await res.json()) as
+        | ConfirmWhatsAppResponse
+        | { success: false; error?: string };
+      if (!res.ok || !("success" in body) || body.success !== true) {
+        const errMessage =
+          "error" in body && typeof body.error === "string"
+            ? body.error
+            : "Error al confirmar el envío por WhatsApp";
         setSendError(errMessage);
         return;
       }
@@ -283,35 +364,65 @@ export function ReportEditor({
       const nextReport: TechnicalReportFull = {
         ...reportData,
         report_status: data.report_status,
-        sent_at: data.sent_at,
-        pdf_storage_path: data.pdf_storage_path,
+        sent_at: data.sent_at ?? reportData.sent_at,
+        pdf_storage_path: waPrepared.pdf_storage_path,
       };
       setReportData(nextReport);
       onUpdated?.(nextReport);
+      setWaPrepared(null);
+      flashSendSuccess("Informe enviado por WhatsApp y cita completada.");
 
-      if (data.email_delivered) {
-        flashSendSuccess("Informe enviado al cliente y cita completada.");
-      } else {
-        // Partial success: DB finalization succeeded, email delivery
-        // failed. Surface as a warning-ish error so admin acts on it
-        // (the response notification carries the underlying provider
-        // message, but we do not surface raw provider tokens here).
-        setSendError(
-          "El informe se finalizó y la cita se completó, pero el correo al cliente no pudo enviarse. Usa “Reenviar correo” para intentarlo de nuevo."
-        );
-      }
-
-      // Refresh the server component so joined metadata
-      // (approved_by_admin name, sent_at formatted, etc.) re-renders
-      // with fresh data. NotificationLogList is client-fetched, so we
-      // also bump its refresh key (router.refresh() doesn't re-trigger
-      // its useEffect).
       router.refresh();
       setNotificationsRefreshKey((k) => k + 1);
     } catch {
       setSendError("Error de red. Intente nuevamente.");
     } finally {
-      setSending(false);
+      setConfirmingWhatsApp(false);
+    }
+  }
+
+  async function handleCancelWhatsApp() {
+    if (!waPrepared) return;
+    setCancellingWhatsApp(true);
+    setSendError(null);
+    setSendSuccess(null);
+
+    try {
+      const res = await fetch(
+        `/api/admin/reports/${reportData.id}/confirm-whatsapp-sent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            confirmed: false,
+            notification_log_id: waPrepared.notification_log_id,
+            pdf_storage_path: waPrepared.pdf_storage_path,
+          }),
+        }
+      );
+      const body = (await res.json()) as
+        | ConfirmWhatsAppResponse
+        | { success: false; error?: string };
+      if (!res.ok || !("success" in body) || body.success !== true) {
+        const errMessage =
+          "error" in body && typeof body.error === "string"
+            ? body.error
+            : "Error al cancelar el envío por WhatsApp";
+        setSendError(errMessage);
+        return;
+      }
+
+      setWaPrepared(null);
+      flashSendSuccess(
+        "Envío por WhatsApp cancelado. El informe permanece aprobado para entrega."
+      );
+
+      router.refresh();
+      setNotificationsRefreshKey((k) => k + 1);
+    } catch {
+      setSendError("Error de red. Intente nuevamente.");
+    } finally {
+      setCancellingWhatsApp(false);
     }
   }
 
@@ -496,15 +607,14 @@ export function ReportEditor({
         role={currentRole}
         reportStatus={reportData.report_status}
         isOwnReport={isOwnReport}
-        recipientEmail={reportData.appointment.email}
         isDirty={isDirty}
         saving={saving}
         transitioning={transitioning}
-        sending={sending}
+        preparingWhatsApp={preparingWhatsApp}
         resending={resending}
         onSave={handleSave}
         onTransition={handleTransition}
-        onSend={handleSend}
+        onPrepareWhatsApp={handleStartWhatsAppPrepare}
         onResend={handleResend}
       />
 
@@ -525,6 +635,67 @@ export function ReportEditor({
           refreshKey={notificationsRefreshKey}
         />
       )}
+
+      {/* Phase 10c — post-prepare confirmation modal.
+       *  Stays open until the admin confirms or cancels. Prevents
+       *  closing the page from acting as an implicit "I already sent
+       *  the message" — admin must click one of the two buttons. */}
+      <Modal
+        open={waPrepared !== null}
+        onClose={() => {
+          // Suppress backdrop / close-button dismissal. Forcing an
+          // explicit confirm or cancel keeps the notification_logs
+          // pending row from being silently abandoned.
+        }}
+        title="Enviar informe por WhatsApp"
+      >
+        {waPrepared && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-navy-900">
+              Abrimos WhatsApp con un mensaje listo para enviar. Cuando hayas
+              enviado el mensaje en WhatsApp, confirma para completar la cita.
+            </p>
+            <div className="rounded-lg bg-surface-50 px-3 py-2 text-xs text-nav">
+              <p className="mb-1 uppercase tracking-wide">Enlace del PDF</p>
+              <p className="break-all text-navy-900">
+                {waPrepared.signed_url}
+              </p>
+            </div>
+            <p className="text-xs text-nav">
+              ¿No se abrió WhatsApp?{" "}
+              <a
+                href={waPrepared.wa_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-blue-accent underline underline-offset-2"
+              >
+                Abrir WhatsApp
+              </a>
+              .
+            </p>
+            <div className="flex flex-wrap justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                size="md"
+                loading={cancellingWhatsApp}
+                disabled={confirmingWhatsApp || cancellingWhatsApp}
+                onClick={handleCancelWhatsApp}
+              >
+                Cancelar envío
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                loading={confirmingWhatsApp}
+                disabled={confirmingWhatsApp || cancellingWhatsApp}
+                onClick={handleConfirmWhatsAppSent}
+              >
+                Ya envié por WhatsApp
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

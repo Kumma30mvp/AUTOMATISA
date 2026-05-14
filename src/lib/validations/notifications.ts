@@ -41,3 +41,42 @@ export type SendReportBody = z.infer<typeof sendReportBodySchema>;
 export const resendReportEmailBodySchema = z.object({}).strict();
 
 export type ResendReportEmailBody = z.infer<typeof resendReportEmailBodySchema>;
+
+/**
+ * POST /api/admin/reports/[id]/prepare-whatsapp  body schema (Phase 10c).
+ *
+ * Empty + strict. The prepare step takes no caller-supplied parameters;
+ * everything it needs (admin id, report id, appointment phone, PDF
+ * contents) is derived server-side.
+ */
+export const prepareWhatsAppBodySchema = z.object({}).strict();
+
+export type PrepareWhatsAppBody = z.infer<typeof prepareWhatsAppBodySchema>;
+
+/**
+ * POST /api/admin/reports/[id]/confirm-whatsapp-sent  body schema (Phase 10c).
+ *
+ *   confirmed=true   → run RPC, mark log sent
+ *   confirmed=false  → mark log failed/admin_cancelled, no state change
+ *
+ * `notification_log_id` and `pdf_storage_path` are round-tripped from
+ * the prepare response. The route verifies the log belongs to the same
+ * report and that the path matches `reports/<report_id>/...pdf` before
+ * proceeding. The RPC re-validates the path inside the SECURITY DEFINER
+ * transaction as a final backstop.
+ */
+export const confirmWhatsAppSentBodySchema = z
+  .object({
+    confirmed: z.boolean({ message: "confirmed es obligatorio" }),
+    notification_log_id: z
+      .string()
+      .regex(UUID_REGEX, "notification_log_id inválido"),
+    pdf_storage_path: z
+      .string({ message: "pdf_storage_path es obligatorio" })
+      .min(1, { message: "pdf_storage_path es obligatorio" }),
+  })
+  .strict();
+
+export type ConfirmWhatsAppSentBody = z.infer<
+  typeof confirmWhatsAppSentBodySchema
+>;
