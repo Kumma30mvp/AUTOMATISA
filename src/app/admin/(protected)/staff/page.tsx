@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { verifySession } from "@/lib/auth/verify-session";
+import { StaffQueueFilters } from "@/components/admin/StaffQueueFilters";
 import { StaffQueueTable } from "@/components/admin/StaffQueueTable";
 import type { AdminListResponse } from "@/lib/types/database";
 
@@ -50,6 +51,7 @@ async function fetchQueue(
   const qs = new URLSearchParams();
   if (params.page) qs.set("page", params.page);
   if (params.pageSize) qs.set("pageSize", params.pageSize);
+  if (params.placa) qs.set("placa", params.placa);
 
   const url = `${baseUrl}/api/admin/staff/queue${
     qs.toString() ? `?${qs.toString()}` : ""
@@ -94,6 +96,8 @@ export default async function StaffWorkspacePage({
           Cola operativa. Solo se muestran citas confirmadas.
         </p>
       </div>
+
+      <StaffQueueFilters initialPlaca={rawParams.placa} />
 
       <StaffQueueTable
         rows={queue.data}

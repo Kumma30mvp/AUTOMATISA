@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLATE_REGEX, normalizePlate } from "@/lib/utils/plate";
 
 /**
  * Body schema for PATCH /api/admin/appointment-requests/[id]/assignment.
@@ -52,12 +53,29 @@ export type VehicleHistoryQuery = z.infer<typeof vehicleHistoryQuerySchema>;
 
 /**
  * Query schema for GET /api/admin/staff/queue.
- * Pagination only — no other filters. The route always restricts to
- * status='confirmada' regardless of role.
+ *
+ * Pagination + optional plate search. The route always restricts to
+ * status='confirmada' regardless of role. When `placa` is supplied the
+ * route adds `.eq("car_plate", placa)` on the canonical form. No
+ * `.ilike()` — exact match keeps the query deterministic.
+ *
+ * `placa` is normalized BEFORE the regex check so URL noise (lowercase,
+ * missing hyphen, spaces) is coerced to the canonical form, mirroring
+ * the rules the public form uses. The regex + normalization helper
+ * live in `@/lib/utils/plate` so the client filter component can reuse
+ * them without pulling zod into the client bundle.
  */
 export const staffQueueQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  placa: z
+    .string()
+    .transform(normalizePlate)
+    .refine((s) => PLATE_REGEX.test(s), {
+      message:
+        "Placa debe tener el formato ABC-123 (6 caracteres alfanuméricos).",
+    })
+    .optional(),
 });
 
 export type StaffQueueQuery = z.infer<typeof staffQueueQuerySchema>;

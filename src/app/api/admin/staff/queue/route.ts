@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const { page, pageSize } = parsed.data;
+    const { page, pageSize, placa } = parsed.data;
     const supabase = await createClient();
 
     let query = supabase
@@ -53,6 +53,13 @@ export async function GET(request: Request) {
       .eq("status", "confirmada")
       .order("preferred_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false });
+
+    // Phase 10d — optional plate filter. Exact match on the canonical
+    // `XXX-XXX` form. The schema normalized the input + validated the
+    // regex; no `.ilike()` (kept deterministic and avoids prefix leaks).
+    if (placa) {
+      query = query.eq("car_plate", placa);
+    }
 
     const fromIdx = (page - 1) * pageSize;
     const toIdx = fromIdx + pageSize - 1;

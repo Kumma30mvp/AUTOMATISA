@@ -7,7 +7,7 @@ export default function Hero() {
       {/* Background Image */}
       <div className="absolute inset-0 bg-navy-900">
         <Image
-          src="/images/hero-bg.png"
+          src="/images/automatisa/hero-logo.png"
           alt=""
           fill
           className="object-cover opacity-40"

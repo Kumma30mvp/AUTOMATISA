@@ -11,6 +11,18 @@ export const BUSINESS = {
   mapsUrl:
     "https://www.google.com/maps/search/Avenida+Los+Alisos+con+Pr%C3%B3ceres+de+Huandoy,+Los+Olivos,+Lima",
   copyright: `© ${new Date().getFullYear()} AUTOMATISA Los Olivos. Todos los derechos reservados.`,
+  /**
+   * Phase 10d — public social profiles.
+   * URLs are stored exactly as supplied (including tracking params).
+   * Do not canonicalize, shorten, or clean them without explicit approval.
+   */
+  socials: {
+    instagram: "https://www.instagram.com/automatisa.sac/",
+    tiktok:
+      "https://www.tiktok.com/@automatisa.sac?_t=ZS-90Botwf2u8t&_r=1&fbclid=PAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKa-Z88KwgDw_p6276N5H8JgNEn1zw8cPtgPqzbZhHaYRi3WE9Q5KyMWbmrE_aem_-DhI69lMjJRn_AskIKtH0w",
+    facebook:
+      "https://www.facebook.com/people/AutoMatisa/61578049494815/?mibextid=wwXIfr&rdid=0utfS24QlCUpzl5s&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BF8KNAegx%2F%3Fmibextid%3DwwXIfr%26utm_source%3Dig%26utm_medium%3Dsocial%26utm_content%3Dlink_in_bio",
+  },
 } as const;
 
 export const NAV_LINKS = [
@@ -24,21 +36,20 @@ export interface Service {
   title: string;
   description: string;
   icon: string;
-  mobileOnly?: boolean;
 }
 
+/**
+ * Phase 10d — canonical AUTOMATISA service catalog (frontend mirror).
+ * Exactly four services, in the order they render on the public site.
+ * Migration 010 enforces the same allow-list at the DB level by setting
+ * `is_active = false` on every other historical row.
+ */
 export const SERVICES: Service[] = [
   {
     title: "Diagnóstico Electrónico",
     description:
       "Identificamos fallas con precisión quirúrgica utilizando escáneres de última generación. Sin suposiciones, solo datos.",
     icon: "Cpu",
-  },
-  {
-    title: "Mantenimiento Completo",
-    description:
-      "Servicio integral que cubre motor, frenos, suspensión y fluidos para garantizar seguridad total.",
-    icon: "Settings",
   },
   {
     title: "Mantenimiento Preventivo",
@@ -56,12 +67,6 @@ export const SERVICES: Service[] = [
     title: "Venta de Repuestos",
     description: "Stock seleccionado de componentes originales y certificados.",
     icon: "Package",
-  },
-  {
-    title: "Sistema de Frenos",
-    description: "Seguridad absoluta en cada frenada.",
-    icon: "CircleAlert",
-    mobileOnly: true,
   },
 ];
 
