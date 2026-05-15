@@ -16,7 +16,11 @@ export default function FinalCTA() {
             más preciso de Los Olivos.
           </p>
           <div className="animate-fade-up [animation-delay:160ms]">
-            <WhatsAppButton variant="white" size="lg">
+            <WhatsAppButton
+              variant="white"
+              size="lg"
+              ariaLabel="Contactar por WhatsApp"
+            >
               ¿Preguntas? Contáctanos!
             </WhatsAppButton>
           </div>
@@ -37,7 +41,11 @@ export default function FinalCTA() {
             Experimente la diferencia de un servicio técnico de precisión.
           </p>
           <div className="w-full animate-fade-up [animation-delay:160ms]">
-            <WhatsAppButton variant="white" fullWidth>
+            <WhatsAppButton
+              variant="white"
+              fullWidth
+              ariaLabel="Contactar por WhatsApp"
+            >
               ¿Preguntas? Contáctanos!
             </WhatsAppButton>
           </div>

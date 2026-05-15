@@ -7,6 +7,15 @@ interface WhatsAppButtonProps {
   size?: "default" | "lg";
   children?: React.ReactNode;
   className?: string;
+  /**
+   * Optional override for the anchor's `aria-label`. When omitted,
+   * defaults to "Agendar cita por WhatsApp" — matches the historical
+   * value so call sites that don't pass the prop keep their current
+   * accessibility text. Pass an explicit value when the visible
+   * children copy diverges from the default action (e.g. FinalCTA's
+   * "¿Preguntas? Contáctanos!").
+   */
+  ariaLabel?: string;
 }
 
 export default function WhatsAppButton({
@@ -15,6 +24,7 @@ export default function WhatsAppButton({
   size = "default",
   children = "Agendar cita por WhatsApp",
   className = "",
+  ariaLabel = "Agendar cita por WhatsApp",
 }: WhatsAppButtonProps) {
   const base =
     "inline-flex items-center justify-center gap-3 font-heading font-bold rounded-lg transition-all duration-200 relative";
@@ -39,7 +49,7 @@ export default function WhatsAppButton({
       target="_blank"
       rel="noopener noreferrer"
       className={`${base} ${variants[variant]} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
-      aria-label="Agendar cita por WhatsApp"
+      aria-label={ariaLabel}
     >
       <WhatsAppIcon className={size === "lg" ? "size-5" : "size-4"} />
       <span>{children}</span>
