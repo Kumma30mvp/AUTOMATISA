@@ -17,6 +17,16 @@
   --color-footer: #64748b;
   --color-whatsapp: #25d366;
   --color-whatsapp-hover: #1fb855;
+
+  /* Phase 10d — AUTOMATISA brand palette (additive).
+   * Existing tokens above are intentionally unchanged at this stage.
+   * Brand tokens are opted into per component to keep the re-skin
+   * reversible. Do NOT redefine --color-navy-900 / --color-surface-50
+   * etc. without explicit approval. */
+  --color-brand-primary: #073290;
+  --color-brand-warm: #fff5f4;
+  --color-brand-sky: #93d5f8;
+
   --font-heading: var(--font-manrope);
   --font-body: var(--font-inter);
 }

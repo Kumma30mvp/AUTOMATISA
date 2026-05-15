@@ -260,7 +260,7 @@ export default function AppointmentForm() {
         <div className="mb-12 hidden lg:block">
           <div className="mb-16 flex items-end justify-between">
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[1.2px] text-blue-accent">
+              <span className="text-xs font-semibold uppercase tracking-[1.2px] text-brand-primary">
                 Solicitar Cita
               </span>
               <h2 className="font-heading text-[40px] font-extrabold leading-[1.2] text-navy-900">
@@ -286,7 +286,7 @@ export default function AppointmentForm() {
         {/* ====== MOBILE HEADER ====== */}
         <div className="mb-10 lg:hidden">
           <div className="flex flex-col items-center gap-3">
-            <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-blue-accent">
+            <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Solicitar Cita
             </span>
             <h2 className="text-center font-heading text-[30px] font-extrabold text-navy-900">

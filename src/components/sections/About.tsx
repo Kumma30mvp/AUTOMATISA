@@ -10,7 +10,7 @@ export default function About() {
           {/* Image Column */}
           <div className="relative h-[576px] overflow-hidden rounded-2xl bg-surface-200 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
             <Image
-              src="/images/about.png"
+              src="/images/automatisa/about-workshop.jpg"
               alt="Taller AUTOMATISA - servicio automotriz profesional"
               fill
               className="object-cover"
@@ -68,7 +68,7 @@ export default function About() {
         {/* Mobile Layout: single column */}
         <div className="flex flex-col gap-10 lg:hidden">
           <div className="flex flex-col gap-3">
-            <span className="font-heading text-sm font-bold uppercase tracking-[2.8px] text-blue-accent">
+            <span className="font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Quiénes somos
             </span>
             <h2 className="font-heading text-[30px] font-extrabold leading-[1.2] text-navy-900">

@@ -1,13 +1,6 @@
 import Image from "next/image";
-import {
-  Cpu,
-  Settings,
-  ShieldCheck,
-  Wrench,
-  Package,
-  CircleAlert,
-  CheckCircle,
-} from "lucide-react";
+import { Cpu, ShieldCheck, Wrench, Package, CheckCircle } from "lucide-react";
+
 export default function Services() {
   return (
     <section id="servicios" className="bg-surface-100 py-16 lg:py-24">
@@ -17,7 +10,7 @@ export default function Services() {
           {/* Section Header */}
           <div className="mb-16 flex items-end justify-between">
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[1.2px] text-blue-accent">
+              <span className="text-xs font-semibold uppercase tracking-[1.2px] text-brand-primary">
                 Atelier de Servicios
               </span>
               <h2 className="font-heading text-[40px] font-extrabold leading-[1.2] text-navy-900">
@@ -30,7 +23,7 @@ export default function Services() {
             </p>
           </div>
 
-          {/* Bento Grid */}
+          {/* Bento Grid — 4 cards, each canonical service exactly once */}
           <div className="grid grid-cols-12 gap-6">
             {/* Diagnóstico Electrónico - Large Card (8 cols) */}
             <div className="col-span-8 rounded-2xl bg-white p-10">
@@ -61,7 +54,7 @@ export default function Services() {
                 </div>
                 <div className="relative h-64 flex-1 overflow-hidden rounded-lg bg-surface-100">
                   <Image
-                    src="/images/diagnostic.png"
+                    src="/images/automatisa/diagnostico-electronico.jpg"
                     alt="Diagnóstico electrónico automotriz"
                     fill
                     className="object-cover"
@@ -71,30 +64,19 @@ export default function Services() {
               </div>
             </div>
 
-            {/* Mantenimiento Completo - Dark Card (4 cols) */}
+            {/* Mantenimiento Preventivo - Dark Card (4 cols) */}
             <div className="col-span-4 flex flex-col gap-4 rounded-2xl bg-navy-900 p-10">
-              <Settings className="size-7 text-white" />
+              <ShieldCheck className="size-7 text-white" />
               <h3 className="pt-2 font-heading text-2xl font-bold text-white">
-                Mantenimiento Completo
+                Mantenimiento Preventivo
               </h3>
               <p className="text-sm leading-relaxed text-blue-muted">
-                Servicio integral que cubre motor, frenos, suspensión y fluidos
-                para garantizar seguridad total.
-              </p>
-            </div>
-
-            {/* Bottom Row: 3 cards x 4 cols */}
-            <div className="col-span-4 rounded-2xl bg-white p-8 shadow-sm">
-              <ShieldCheck className="mb-2 size-6 text-navy-900" />
-              <h4 className="mb-2 pt-2 font-heading text-xl font-bold text-navy-900">
-                Mantenimiento Preventivo
-              </h4>
-              <p className="text-sm leading-relaxed text-body">
                 Evita costosas reparaciones a futuro con chequeos programados.
               </p>
             </div>
 
-            <div className="col-span-4 rounded-2xl bg-white p-8 shadow-sm">
+            {/* Bottom Row: 2 cards x 6 cols */}
+            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm">
               <Wrench className="mb-2 size-6 text-navy-900" />
               <h4 className="mb-2 pt-2 font-heading text-xl font-bold text-navy-900">
                 Mantenimiento Correctivo
@@ -105,7 +87,7 @@ export default function Services() {
               </p>
             </div>
 
-            <div className="col-span-4 rounded-2xl bg-white p-8 shadow-sm">
+            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm">
               <Package className="mb-2 size-6 text-navy-900" />
               <h4 className="mb-2 pt-2 font-heading text-xl font-bold text-navy-900">
                 Venta de Repuestos
@@ -121,7 +103,7 @@ export default function Services() {
         <div className="lg:hidden">
           {/* Section Header */}
           <div className="mb-12 flex flex-col items-center gap-3">
-            <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-blue-accent">
+            <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Experticia
             </span>
             <h2 className="text-center font-heading text-[30px] font-extrabold text-navy-900">
@@ -129,33 +111,28 @@ export default function Services() {
             </h2>
           </div>
 
-          {/* Stacked Cards */}
+          {/* Stacked Cards — same four services as desktop, same order */}
           <div className="flex flex-col gap-4">
             {[
               {
                 icon: Cpu,
-                title: "Diagnóstico electrónico",
+                title: "Diagnóstico Electrónico",
                 desc: "Escaneo profundo y mapeo de sistemas.",
               },
               {
                 icon: ShieldCheck,
-                title: "Mantenimiento preventivo",
+                title: "Mantenimiento Preventivo",
                 desc: "Preservamos la vida útil de su motor.",
               },
               {
                 icon: Wrench,
-                title: "Mecánica Correctiva",
+                title: "Mantenimiento Correctivo",
                 desc: "Reparaciones de alta complejidad.",
               },
               {
                 icon: Package,
-                title: "Repuestos Originales",
+                title: "Venta de Repuestos",
                 desc: "Componentes certificados de fábrica.",
-              },
-              {
-                icon: CircleAlert,
-                title: "Sistema de Frenos",
-                desc: "Seguridad absoluta en cada frenada.",
               },
             ].map((service) => (
               <div
