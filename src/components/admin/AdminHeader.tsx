@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Home, LogOut } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -43,11 +44,11 @@ export function AdminHeader({ fullName, email, role }: AdminHeaderProps) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div>
           <p className="font-heading text-lg font-semibold text-navy-900">
-            AUTOMATISA · Admin
+            AUTOMATISA COLABORADORES
           </p>
           <p className="text-xs text-nav">Panel de solicitudes de cita</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div className="hidden text-right sm:block">
             <div className="flex items-center justify-end gap-2">
               <p className="text-sm font-medium text-navy-900">{fullName}</p>
@@ -60,6 +61,14 @@ export function AdminHeader({ fullName, email, role }: AdminHeaderProps) {
             </div>
             <p className="text-xs text-nav">{email}</p>
           </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-sm font-medium text-navy-900 transition-colors hover:bg-surface-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-accent"
+          >
+            <Home className="h-4 w-4" aria-hidden />
+            <span className="hidden sm:inline">Volver al inicio</span>
+            <span className="sm:hidden">Inicio</span>
+          </Link>
           <Button
             variant="secondary"
             size="sm"

@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/auth/verify-session";
 import { LoginForm } from "@/components/admin/LoginForm";
 
 export const metadata = {
-  title: "AUTOMATISA | Admin",
+  title: "AUTOMATISA | Colaboradores",
 };
 
 export default async function AdminLoginPage() {
@@ -19,13 +20,21 @@ export default async function AdminLoginPage() {
       <div className="w-full max-w-md rounded-xl border border-surface-200 bg-white p-8 shadow-sm">
         <div className="mb-6 text-center">
           <h1 className="font-heading text-2xl font-semibold text-navy-900">
-            AUTOMATISA Admin
+            AUTOMATISA COLABORADORES
           </h1>
           <p className="mt-1 text-sm text-nav">
             Inicie sesión para gestionar las solicitudes de cita.
           </p>
         </div>
         <LoginForm />
+        <div className="mt-6 text-center">
+          <Link
+            href="/"
+            className="text-sm font-medium text-blue-accent underline-offset-2 transition-colors hover:text-navy-900 hover:underline"
+          >
+            Volver al inicio
+          </Link>
+        </div>
       </div>
     </main>
   );
