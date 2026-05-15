@@ -258,7 +258,7 @@ export default function AppointmentForm() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* ====== DESKTOP HEADER ====== */}
         <div className="mb-12 hidden lg:block">
-          <div className="mb-16 flex items-end justify-between">
+          <div className="mb-16 flex items-end justify-between animate-fade-up">
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold uppercase tracking-[1.2px] text-brand-primary">
                 Solicitar Cita
@@ -285,7 +285,7 @@ export default function AppointmentForm() {
 
         {/* ====== MOBILE HEADER ====== */}
         <div className="mb-10 lg:hidden">
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3 animate-fade-up">
             <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Solicitar Cita
             </span>

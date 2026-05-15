@@ -8,7 +8,7 @@ export default function About() {
         {/* Desktop Layout: 2 columns */}
         <div className="hidden gap-16 lg:grid lg:grid-cols-2 lg:items-center">
           {/* Image Column */}
-          <div className="relative h-[576px] overflow-hidden rounded-2xl bg-surface-200 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)]">
+          <div className="relative h-[576px] overflow-hidden rounded-2xl bg-surface-200 shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)] animate-fade-up">
             <Image
               src="/images/automatisa/about-workshop.jpg"
               alt="Taller AUTOMATISA - servicio automotriz profesional"
@@ -20,12 +20,12 @@ export default function About() {
 
           {/* Text Column */}
           <div className="flex flex-col gap-8">
-            <h2 className="font-heading text-[40px] font-extrabold leading-[1.2] tracking-[-1px] text-navy-900">
+            <h2 className="font-heading text-[40px] font-extrabold leading-[1.2] tracking-[-1px] text-navy-900 animate-fade-up [animation-delay:80ms]">
               Precisión que genera
               <br />
               Confianza
             </h2>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 animate-fade-up [animation-delay:160ms]">
               <p className="text-lg leading-[1.625] text-body">
                 En{" "}
                 <span className="font-semibold text-navy-900">AUTOMATISA</span>,
@@ -42,8 +42,8 @@ export default function About() {
             </div>
 
             {/* Misión y Visión Cards - Desktop */}
-            <div className="grid grid-cols-2 gap-8 pt-4">
-              <div className="rounded-lg bg-surface-100 p-6">
+            <div className="grid grid-cols-2 gap-8 pt-4 animate-fade-up [animation-delay:240ms]">
+              <div className="rounded-lg bg-surface-100 p-6 hover-lift">
                 <h3 className="mb-2 font-heading text-base font-bold text-navy-900">
                   Nuestra Misión
                 </h3>
@@ -52,7 +52,7 @@ export default function About() {
                   vida de su vehículo.
                 </p>
               </div>
-              <div className="rounded-lg bg-surface-100 p-6">
+              <div className="rounded-lg bg-surface-100 p-6 hover-lift">
                 <h3 className="mb-2 font-heading text-base font-bold text-navy-900">
                   Nuestra Visión
                 </h3>
@@ -67,7 +67,7 @@ export default function About() {
 
         {/* Mobile Layout: single column */}
         <div className="flex flex-col gap-10 lg:hidden">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 animate-fade-up">
             <span className="font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Quiénes somos
             </span>
@@ -93,7 +93,7 @@ export default function About() {
 
           {/* Misión y Visión Cards - Mobile */}
           <div className="flex flex-col gap-4">
-            <div className="rounded-lg border border-[rgba(197,198,206,0.1)] bg-white p-8 shadow-sm">
+            <div className="rounded-lg border border-[rgba(197,198,206,0.1)] bg-white p-8 shadow-sm hover-lift animate-fade-up [animation-delay:80ms]">
               <div className="mb-3 flex size-12 items-center justify-center rounded bg-navy-800">
                 <Target className="size-5 text-white" />
               </div>
@@ -105,7 +105,7 @@ export default function About() {
                 la precisión técnica y el uso estratégico de la tecnología.
               </p>
             </div>
-            <div className="rounded-lg border border-[rgba(197,198,206,0.1)] bg-white p-8 shadow-sm">
+            <div className="rounded-lg border border-[rgba(197,198,206,0.1)] bg-white p-8 shadow-sm hover-lift animate-fade-up [animation-delay:160ms]">
               <div className="mb-3 flex size-12 items-center justify-center rounded bg-navy-800">
                 <Eye className="size-5 text-white" />
               </div>

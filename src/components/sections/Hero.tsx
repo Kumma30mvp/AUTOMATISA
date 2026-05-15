@@ -23,28 +23,28 @@ export default function Hero() {
       <div className="relative mx-auto w-full max-w-7xl px-6 lg:px-8">
         <div className="max-w-2xl">
           {/* Badge */}
-          <div className="mb-6">
+          <div className="mb-6 animate-fade-up">
             <span className="inline-block rounded-xl bg-blue-accent/20 px-4 py-1.5 text-xs font-normal uppercase tracking-[1.2px] text-blue-light">
               Excelencia en Los Olivos
             </span>
           </div>
 
           {/* Heading */}
-          <h1 className="mb-6 font-heading text-[56px] font-extrabold leading-[1.1] tracking-[-1.12px] text-white">
+          <h1 className="mb-6 font-heading text-[56px] font-extrabold leading-[1.1] tracking-[-1.12px] text-white animate-fade-up [animation-delay:80ms]">
             Servicio Automotriz
             <br />
             Profesional en Los Olivos
           </h1>
 
           {/* Subtext */}
-          <p className="mb-8 max-w-xl text-base leading-relaxed text-blue-muted">
+          <p className="mb-8 max-w-xl text-base leading-relaxed text-blue-muted animate-fade-up [animation-delay:160ms]">
             Diagnóstico electrónico, mantenimiento integral y repuestos de alta
             calidad para tu vehículo. Elevamos el estándar del cuidado automotriz
             con precisión técnica.
           </p>
 
           {/* CTAs */}
-          <div className="flex gap-4">
+          <div className="flex gap-4 animate-fade-up [animation-delay:240ms]">
             <WhatsAppButton variant="primary" />
             <a
               href="#servicios"

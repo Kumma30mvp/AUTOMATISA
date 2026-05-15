@@ -8,7 +8,7 @@ export default function Services() {
         {/* ====== DESKTOP LAYOUT ====== */}
         <div className="hidden lg:block">
           {/* Section Header */}
-          <div className="mb-16 flex items-end justify-between">
+          <div className="mb-16 flex items-end justify-between animate-fade-up">
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold uppercase tracking-[1.2px] text-brand-primary">
                 Atelier de Servicios
@@ -26,7 +26,7 @@ export default function Services() {
           {/* Bento Grid — 4 cards, each canonical service exactly once */}
           <div className="grid grid-cols-12 gap-6">
             {/* Diagnóstico Electrónico - Large Card (8 cols) */}
-            <div className="col-span-8 rounded-2xl bg-white p-10">
+            <div className="col-span-8 rounded-2xl bg-white p-10 hover-lift animate-fade-up [animation-delay:80ms]">
               <div className="flex items-center gap-10">
                 <div className="flex flex-1 flex-col gap-4 pb-8">
                   <Cpu className="size-7 text-navy-900" />
@@ -65,7 +65,7 @@ export default function Services() {
             </div>
 
             {/* Mantenimiento Preventivo - Dark Card (4 cols) */}
-            <div className="col-span-4 flex flex-col gap-4 rounded-2xl bg-navy-900 p-10">
+            <div className="col-span-4 flex flex-col gap-4 rounded-2xl bg-navy-900 p-10 hover-lift animate-fade-up [animation-delay:160ms]">
               <ShieldCheck className="size-7 text-white" />
               <h3 className="pt-2 font-heading text-2xl font-bold text-white">
                 Mantenimiento Preventivo
@@ -76,7 +76,7 @@ export default function Services() {
             </div>
 
             {/* Bottom Row: 2 cards x 6 cols */}
-            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm">
+            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm hover-lift animate-fade-up [animation-delay:240ms]">
               <Wrench className="mb-2 size-6 text-navy-900" />
               <h4 className="mb-2 pt-2 font-heading text-xl font-bold text-navy-900">
                 Mantenimiento Correctivo
@@ -87,7 +87,7 @@ export default function Services() {
               </p>
             </div>
 
-            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm">
+            <div className="col-span-6 rounded-2xl bg-white p-8 shadow-sm hover-lift animate-fade-up [animation-delay:320ms]">
               <Package className="mb-2 size-6 text-navy-900" />
               <h4 className="mb-2 pt-2 font-heading text-xl font-bold text-navy-900">
                 Venta de Repuestos
@@ -102,7 +102,7 @@ export default function Services() {
         {/* ====== MOBILE LAYOUT ====== */}
         <div className="lg:hidden">
           {/* Section Header */}
-          <div className="mb-12 flex flex-col items-center gap-3">
+          <div className="mb-12 flex flex-col items-center gap-3 animate-fade-up">
             <span className="text-center font-heading text-sm font-bold uppercase tracking-[2.8px] text-brand-primary">
               Experticia
             </span>
@@ -134,10 +134,11 @@ export default function Services() {
                 title: "Venta de Repuestos",
                 desc: "Componentes certificados de fábrica.",
               },
-            ].map((service) => (
+            ].map((service, idx) => (
               <div
                 key={service.title}
-                className="flex items-center gap-5 rounded-lg bg-white p-6 shadow-sm"
+                className="flex items-center gap-5 rounded-lg bg-white p-6 shadow-sm hover-lift animate-fade-up"
+                style={{ animationDelay: `${80 + idx * 80}ms` }}
               >
                 <div className="flex size-14 shrink-0 items-center justify-center rounded bg-blue-accent/10">
                   <service.icon className="size-5 text-blue-accent" />

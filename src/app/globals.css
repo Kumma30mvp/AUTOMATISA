@@ -50,3 +50,56 @@ h5,
 h6 {
   font-family: var(--font-heading), system-ui, sans-serif;
 }
+
+/* Phase 10d — subtle landing animations.
+ *
+ * Every animation and motion-bearing transition is gated behind
+ * `@media (prefers-reduced-motion: no-preference)` so that users with
+ * the OS-level reduced-motion preference get the static, fully visible
+ * state with no opacity flicker and no hover lift. Utility classes
+ * resolve to zero styles outside this block, so they no-op safely.
+ *
+ * Cost note: `transform` + `opacity` are composited by the browser, so
+ * no layout shift and no repaint thrash. Stagger delays are applied
+ * inline via Tailwind arbitrary properties (e.g. `[animation-delay:80ms]`).
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out both;
+  }
+
+  .hover-lift {
+    transition:
+      transform 0.2s ease-out,
+      box-shadow 0.2s ease-out;
+    will-change: transform;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
